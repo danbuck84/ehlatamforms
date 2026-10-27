@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none">
+  <rect width="512" height="512" rx="112" fill="#121214"/>
+  <!-- Speech bubble -->
+  <path
+    d="M96 148C96 114.863 122.863 88 156 88H356C389.137 88 416 114.863 416 148V300C416 333.137 389.137 360 356 360H236L156 420V360H156C122.863 360 96 333.137 96 300V148Z"
+    fill="#202024"
+    stroke="#8257E5"
+    stroke-width="20"
+    stroke-linejoin="round"
+  />
+  <!-- Rocket inside speech bubble -->
+  <path
+    d="M286 144C318 144 342 168 342 200C342 246 286 292 256 312C226 292 170 246 170 200C170 168 194 144 226 144C242 144 256 154 256 154C256 154 270 144 286 144Z"
+    fill="#8257E5"
+  />
+  <circle cx="256" cy="212" r="24" fill="#04D361"/>
+  <path d="M232 308L256 344L280 308H232Z" fill="#04D361"/>
+</svg>

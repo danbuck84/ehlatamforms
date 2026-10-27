@@ -1,0 +1,202 @@
+rules_version = '2';
+
+// ===============================================================
+// Assumed Data Model
+// ===============================================================
+//
+// This security rules file assumes the following data structures:
+//
+// Collection: sessions
+// Document ID: {sessionId} matching YYYY-MM-DD or YYYY-MM-DD-[a-z]
+// Fields:
+//   - startsAt: timestamp (required) - UTC class start instant
+//   - endsAt: timestamp (required, > startsAt) - UTC class end instant
+//   - timezone: string (required, == 'America/Sao_Paulo') - IANA timezone
+//   - opensOffsetMin: int (required, 0..2880) - minutes before startsAt check-in opens
+//   - closesOffsetMin: int (required, 0..2880) - minutes after startsAt check-in closes
+//   - status: string (required, in ['scheduled', 'cancelled']) - session status
+//   - requireKeyword: bool (required) - whether secret keyword is required
+//   - peakAudience: int or null (optional, 0..10000) - manual peak attendance count
+//   - title: string or null (optional, <= 200 chars) - optional display title
+//   - topic: string or null (optional, <= 200 chars) - optional conversation topic
+//   - notes: string or null (optional, <= 2000 chars) - optional admin notes
+//   - createdAt: timestamp (optional) - creation timestamp
+//   - updatedAt: timestamp (optional) - last update timestamp
+//
+// Collection: sessionSecrets
+// Document ID: {sessionId} matching YYYY-MM-DD or YYYY-MM-DD-[a-z]
+// Fields:
+//   - keyword: string (required, 1..100 chars) - secret attendance keyword
+//   - fuzzy: bool (required) - whether fuzzy matching is allowed
+//   - updatedAt: timestamp (optional) - last update timestamp
+//
+// Collection: checkins
+// Document ID: {checkinId} ({sessionId}__{emailKey})
+// Access: Admin read-only; all writes occur exclusively via Admin SDK in Netlify Functions.
+//
+// Collection: students
+// Document ID: {emailKey} (SHA-256 hex of canonical email)
+// Access: Admin read-only; all writes occur exclusively via Admin SDK in Netlify Functions.
+//
+// Collection: sessionStats
+// Document ID: {sessionId}
+// Access: Admin read-only; all writes occur exclusively via Admin SDK in Netlify Functions.
+//
+// Collection: rateLimits
+// Document ID: {key}
+// Access: Server-only via Admin SDK in Netlify Functions (admin read allowed for diagnostics).
+//
+// ===============================================================
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isAuthenticated()
+        && request.auth.token.email_verified == true
+        && request.auth.token.email is string
+        && request.auth.token.email.lower() in ['daniel.buck@rocketseat.team'];
+    }
+
+    function isValidSessionId(sessionId) {
+      return sessionId is string
+        && sessionId.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}(-[a-z])?$');
+    }
+
+    function hasRequiredFields(data, fields) {
+      return data.keys().hasAll(fields);
+    }
+
+    function hasOnlyAllowedFields(data, fields) {
+      return data.keys().hasOnly(fields);
+    }
+
+    function isValidOptionalNullableString(data, field, maxLen) {
+      return !(field in data)
+        || data[field] == null
+        || (data[field] is string && data[field].size() <= maxLen);
+    }
+
+    function isValidOptionalTimestamp(data, field) {
+      return !(field in data) || data[field] is timestamp;
+    }
+
+    // ===============================================================
+    // Domain Validators (Used in both create and update)
+    // ===============================================================
+
+    function isValidSession(data) {
+      return hasRequiredFields(data, [
+          'startsAt',
+          'endsAt',
+          'timezone',
+          'opensOffsetMin',
+          'closesOffsetMin',
+          'status',
+          'requireKeyword'
+        ])
+        && hasOnlyAllowedFields(data, [
+          'startsAt',
+          'endsAt',
+          'timezone',
+          'opensOffsetMin',
+          'closesOffsetMin',
+          'status',
+          'requireKeyword',
+          'peakAudience',
+          'title',
+          'topic',
+          'notes',
+          'createdAt',
+          'updatedAt'
+        ])
+        && data.startsAt is timestamp
+        && data.endsAt is timestamp
+        && data.endsAt > data.startsAt
+        && data.timezone is string
+        && data.timezone == 'America/Sao_Paulo'
+        && data.opensOffsetMin is int
+        && data.opensOffsetMin >= 0
+        && data.opensOffsetMin <= 2880
+        && data.closesOffsetMin is int
+        && data.closesOffsetMin >= 0
+        && data.closesOffsetMin <= 2880
+        && data.status is string
+        && data.status in ['scheduled', 'cancelled']
+        && data.requireKeyword is bool
+        && (
+          !('peakAudience' in data)
+          || data.peakAudience == null
+          || (data.peakAudience is int && data.peakAudience >= 0 && data.peakAudience <= 10000)
+        )
+        && isValidOptionalNullableString(data, 'title', 200)
+        && isValidOptionalNullableString(data, 'topic', 200)
+        && isValidOptionalNullableString(data, 'notes', 2000)
+        && isValidOptionalTimestamp(data, 'createdAt')
+        && isValidOptionalTimestamp(data, 'updatedAt');
+    }
+
+    function isValidSessionSecret(data) {
+      return hasRequiredFields(data, ['keyword', 'fuzzy'])
+        && hasOnlyAllowedFields(data, ['keyword', 'fuzzy', 'updatedAt'])
+        && data.keyword is string
+        && data.keyword.size() >= 1
+        && data.keyword.size() <= 100
+        && data.fuzzy is bool
+        && isValidOptionalTimestamp(data, 'updatedAt');
+    }
+
+    // ===============================================================
+    // Collection Rules
+    // ===============================================================
+
+    match /sessions/{sessionId} {
+      allow read: if isAdmin();
+      allow create, update: if isAdmin()
+        && isValidSessionId(sessionId)
+        && isValidSession(request.resource.data);
+      allow delete: if isAdmin() && isValidSessionId(sessionId);
+    }
+
+    match /sessionSecrets/{sessionId} {
+      allow read: if isAdmin();
+      allow create, update: if isAdmin()
+        && isValidSessionId(sessionId)
+        && isValidSessionSecret(request.resource.data);
+      allow delete: if isAdmin() && isValidSessionId(sessionId);
+    }
+
+    match /checkins/{checkinId} {
+      allow read: if isAdmin();
+      allow write: if false;
+    }
+
+    match /students/{emailKey} {
+      allow read: if isAdmin();
+      allow write: if false;
+    }
+
+    match /sessionStats/{sessionId} {
+      allow read: if isAdmin();
+      allow write: if false;
+    }
+
+    match /rateLimits/{key} {
+      allow read: if isAdmin();
+      allow write: if false;
+    }
+
+    // Default deny for all other paths
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

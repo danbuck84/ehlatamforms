@@ -1,0 +1,69 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Java 21 (for Firebase Emulators)
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Security audit
+        run: pnpm audit --audit-level=high
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Unit tests
+        run: pnpm test
+
+      - name: Firestore rules & functions emulator tests
+        run: pnpm test:emulator
+
+      - name: Build production bundle
+        run: pnpm build
+
+      - name: Enforce student initial JS <= 150 KB gzip budget
+        run: |
+          for f in dist/assets/index-*.js; do
+            size=$(gzip -c "$f" | wc -c)
+            echo "Student entry chunk $f gzip size: $size bytes"
+            if [ "$size" -gt 153600 ]; then
+              echo "::error::Student entry chunk exceeds 150 KB gzip ($size bytes)"
+              exit 1
+            fi
+          done
+
+      - name: Install Playwright Chromium
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Playwright E2E + axe accessibility tests
+        run: pnpm test:e2e
+
+      - name: Lighthouse CI
+        run: pnpm lhci

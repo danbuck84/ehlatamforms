@@ -4,3 +4,7 @@ allowBuilds:
   protobufjs: true
   "@firebase/util": true
   re2: true
+
+overrides:
+  jose: "5.10.0"
+

@@ -662,11 +662,11 @@ export default function AdminPage() {
       )}
 
       {tab === 'sessions' && (
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-12 lg:items-start">
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-12 lg:items-stretch">
           {/* Create / Edit form */}
           <form
             onSubmit={(e) => void handleSaveSession(e)}
-            className="space-y-4 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 sm:p-6 lg:col-span-7"
+            className="flex h-full flex-col gap-4 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 sm:p-6 lg:col-span-7"
           >
             <h2 className="text-base font-bold text-[var(--text)]">Create / Edit Session</h2>
 
@@ -851,15 +851,15 @@ export default function AdminPage() {
 
             <button
               type="submit"
-              className="min-h-11 w-full rounded-xl bg-[var(--primary)] px-4 py-2.5 text-sm font-bold text-white"
+              className="mt-auto min-h-11 w-full rounded-xl bg-[var(--primary)] px-4 py-2.5 text-sm font-bold text-white"
             >
               Save Session
             </button>
           </form>
 
           {/* Generator + Session list */}
-          <div className="space-y-6 lg:col-span-5">
-            <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 sm:p-6">
+          <div className="flex h-full flex-col gap-6 lg:col-span-5">
+            <div className="shrink-0 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 sm:p-6">
               <h2 className="text-base font-bold text-[var(--text)]">
                 Generate Tue/Thu Sessions (18:00–19:00 BRT)
               </h2>
@@ -934,42 +934,44 @@ export default function AdminPage() {
               </button>
             </div>
 
-            <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5">
+            <div className="flex min-h-[16rem] flex-1 flex-col rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 sm:p-6">
               <div className="flex items-center justify-between">
                 <h2 className="text-base font-bold text-[var(--text)]">
                   Sessions ({sessions.length})
                 </h2>
                 {loadingData && <span className="text-xs text-[var(--text-secondary)]">Refreshing...</span>}
               </div>
-              <ul className="mt-3 max-h-80 space-y-2 overflow-y-auto">
-                {sessions.map((s) => (
-                  <li key={s.id}>
-                    <button
-                      type="button"
-                      onClick={() => populateFormFromSession(s)}
-                      className="flex w-full items-center justify-between rounded-xl border border-[var(--border)] bg-[var(--bg)] px-3.5 py-2.5 text-left text-xs hover:border-[var(--primary)]"
-                    >
-                      <div>
-                        <span className="font-bold text-[var(--text)]">{s.id}</span>
-                        {s.doc.topic && (
-                          <span className="ml-2 text-[var(--text-secondary)]">· {s.doc.topic}</span>
-                        )}
-                        {s.doc.status === 'cancelled' && (
-                          <span className="ml-2 rounded bg-red-500/20 px-1.5 py-0.5 text-[10px] font-bold text-red-300">
-                            CANCELLED
+              <div className="mt-3 flex-1 lg:relative">
+                <ul className="max-h-80 space-y-2 overflow-y-auto lg:absolute lg:inset-0 lg:max-h-none lg:pr-1">
+                  {sessions.map((s) => (
+                    <li key={s.id}>
+                      <button
+                        type="button"
+                        onClick={() => populateFormFromSession(s)}
+                        className="flex w-full items-center justify-between rounded-xl border border-[var(--border)] bg-[var(--bg)] px-3.5 py-2.5 text-left text-xs hover:border-[var(--primary)]"
+                      >
+                        <div>
+                          <span className="font-bold text-[var(--text)]">{s.id}</span>
+                          {s.doc.topic && (
+                            <span className="ml-2 text-[var(--text-secondary)]">· {s.doc.topic}</span>
+                          )}
+                          {s.doc.status === 'cancelled' && (
+                            <span className="ml-2 rounded bg-red-500/20 px-1.5 py-0.5 text-[10px] font-bold text-red-300">
+                              CANCELLED
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2 text-[var(--text-secondary)]">
+                          {s.secret?.keyword && <span>🔑 {s.secret.keyword}</span>}
+                          <span className="rounded-md bg-[var(--surface)] px-2 py-0.5 font-mono font-bold text-[var(--text)]">
+                            {s.stats.total}
                           </span>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-2 text-[var(--text-secondary)]">
-                        {s.secret?.keyword && <span>🔑 {s.secret.keyword}</span>}
-                        <span className="rounded-md bg-[var(--surface)] px-2 py-0.5 font-mono font-bold text-[var(--text)]">
-                          {s.stats.total}
-                        </span>
-                      </div>
-                    </button>
-                  </li>
-                ))}
-              </ul>
+                        </div>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </div>
             </div>
           </div>
         </div>
@@ -1209,9 +1211,9 @@ export default function AdminPage() {
               {checkins.map((c) => (
                 <li
                   key={c.id}
-                  className="flex flex-wrap items-start justify-between gap-2 rounded-xl border border-[var(--border)] bg-[var(--bg)] p-3"
+                  className="flex flex-col items-start gap-2.5 rounded-xl border border-[var(--border)] bg-[var(--bg)] p-3.5"
                 >
-                  <div className="space-y-1">
+                  <div className="w-full space-y-1">
                     <p className="font-semibold text-[var(--text)]">
                       {flagEmoji(c.doc.country)} {c.doc.email} ·{' '}
                       <span className="text-[var(--text-secondary)]">{c.doc.sessionId}</span> · ⭐{' '}

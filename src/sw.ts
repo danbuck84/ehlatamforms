@@ -12,6 +12,14 @@ declare const self: ServiceWorkerGlobalScope;
 precacheAndRoute(self.__WB_MANIFEST);
 cleanupOutdatedCaches();
 
+// Activate updated service workers immediately without prompting the user.
+self.addEventListener('install', () => {
+  void self.skipWaiting();
+});
+self.addEventListener('activate', (event) => {
+  event.waitUntil(self.clients.claim());
+});
+
 // SPA navigations → precached index.html, except API and Netlify internals.
 registerRoute(
   new NavigationRoute(createHandlerBoundToURL('/index.html'), {

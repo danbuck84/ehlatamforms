@@ -7,9 +7,28 @@ import { buildCheckinHeaders } from '../lib/api';
 export function SwUpdateAndOfflineToast() {
   const { t } = useTranslation();
   const {
-    needRefresh: [needRefresh, setNeedRefresh],
+    needRefresh: [needRefresh],
     updateServiceWorker,
-  } = useRegisterSW();
+  } = useRegisterSW({
+    onRegisteredSW(_swUrl, registration) {
+      if (!registration) return;
+      // Check for new deployments when returning to the tab and every 15 minutes.
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') {
+          void registration.update();
+        }
+      });
+      setInterval(() => {
+        void registration.update();
+      }, 15 * 60 * 1000);
+    },
+  });
+
+  useEffect(() => {
+    if (needRefresh) {
+      void updateServiceWorker(true);
+    }
+  }, [needRefresh, updateServiceWorker]);
 
   const [queued, setQueued] = useState(0);
   const [flushedToast, setFlushedToast] = useState(false);
@@ -100,29 +119,6 @@ export function SwUpdateAndOfflineToast() {
             type="button"
             onClick={() => setFlushedToast(false)}
             className="min-h-11 min-w-11 rounded-xl px-2 text-xs text-[var(--text-secondary)] hover:text-[var(--text)]"
-          >
-            {t('app.dismiss')}
-          </button>
-        </div>
-      )}
-      {needRefresh && (
-        <div
-          role="status"
-          aria-live="polite"
-          className="fixed bottom-4 right-4 z-50 flex items-center gap-3 rounded-2xl border border-[var(--primary)] bg-[var(--surface)] px-4 py-3 text-sm text-[var(--text)] shadow-xl"
-        >
-          <span>{t('app.swUpdateTitle')}</span>
-          <button
-            type="button"
-            onClick={() => void updateServiceWorker(true)}
-            className="min-h-11 rounded-xl bg-[var(--primary)] px-3 py-1.5 font-semibold text-white"
-          >
-            {t('app.swUpdateAction')}
-          </button>
-          <button
-            type="button"
-            onClick={() => setNeedRefresh(false)}
-            className="min-h-11 rounded-xl px-2 text-xs text-[var(--text-secondary)]"
           >
             {t('app.dismiss')}
           </button>

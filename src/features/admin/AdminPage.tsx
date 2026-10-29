@@ -662,15 +662,15 @@ export default function AdminPage() {
       )}
 
       {tab === 'sessions' && (
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-12 lg:items-start">
           {/* Create / Edit form */}
           <form
             onSubmit={(e) => void handleSaveSession(e)}
-            className="space-y-4 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5"
+            className="space-y-4 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 sm:p-6 lg:col-span-7"
           >
             <h2 className="text-base font-bold text-[var(--text)]">Create / Edit Session</h2>
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <div>
                 <label htmlFor="s-id" className="block text-xs font-semibold text-[var(--text-secondary)]">
                   Session ID
@@ -800,7 +800,7 @@ export default function AdminPage() {
               )}
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <div>
                 <label htmlFor="s-peak" className="block text-xs font-semibold text-[var(--text-secondary)]">
                   Peak Zoom Audience (excl. teacher)
@@ -858,12 +858,12 @@ export default function AdminPage() {
           </form>
 
           {/* Generator + Session list */}
-          <div className="space-y-6">
-            <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5">
+          <div className="space-y-6 lg:col-span-5">
+            <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 sm:p-6">
               <h2 className="text-base font-bold text-[var(--text)]">
                 Generate Tue/Thu Sessions (18:00–19:00 BRT)
               </h2>
-              <div className="mt-3 grid grid-cols-2 gap-3">
+              <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <div>
                   <label
                     htmlFor="gen-start"

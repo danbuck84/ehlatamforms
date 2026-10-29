@@ -23,7 +23,7 @@ export function CheckinPage() {
       <div
         role="status"
         aria-live="polite"
-        className="space-y-4 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6"
+        className="mx-auto max-w-2xl space-y-4 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6 sm:p-8"
       >
         <p className="text-sm font-medium text-[var(--text-secondary)]">{t('states.loading')}</p>
         <div className="h-6 w-2/3 animate-pulse rounded-lg bg-[var(--border)]" />
@@ -37,7 +37,7 @@ export function CheckinPage() {
     return (
       <section
         role="alert"
-        className="space-y-4 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6 text-center shadow-lg"
+        className="mx-auto max-w-2xl space-y-4 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6 text-center shadow-lg sm:p-10"
       >
         <div aria-hidden="true" className="text-3xl">
           ⚠️
@@ -67,7 +67,7 @@ export function CheckinPage() {
     openSessions.find((s) => s.id === chosenSessionId) ?? openSessions[0]!;
 
   return (
-    <div className="space-y-4">
+    <div className="mx-auto max-w-xl space-y-4 lg:max-w-5xl">
       {openSessions.length > 1 && (
         <div
           role="region"
@@ -77,7 +77,7 @@ export function CheckinPage() {
           <p className="mb-2 text-xs font-semibold text-[var(--text-secondary)]">
             {t('header.chooseSessionLabel')}
           </p>
-          <div className="grid grid-cols-1 gap-2">
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
             {openSessions.map((s) => {
               const selected = s.id === activeSession.id;
               const moment = formatClassMoment(Date.parse(s.startsAt), i18n.language, APP_CONFIG.TIMEZONE);

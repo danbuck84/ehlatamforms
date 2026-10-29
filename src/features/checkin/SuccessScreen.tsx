@@ -32,7 +32,7 @@ export function SuccessScreen({ variant, nextSession }: SuccessScreenProps) {
   return (
     <section
       aria-live="polite"
-      className="relative overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6 text-center shadow-xl"
+      className="relative mx-auto max-w-2xl overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6 text-center shadow-xl sm:p-10"
     >
       <div aria-hidden="true" className="celebration-burst mx-auto mb-3 flex h-16 w-16 items-center justify-center rounded-full bg-[var(--accent)]/15 text-3xl">
         {variant === 'queued' ? '📡' : '🎉'}

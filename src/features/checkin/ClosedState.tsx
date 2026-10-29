@@ -33,11 +33,11 @@ export function ClosedState({ nextSession, clockOffsetMs }: ClosedStateProps) {
 
   if (!nextSession) {
     return (
-      <section className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6 text-center shadow-lg">
+      <section className="mx-auto max-w-2xl rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6 text-center shadow-lg sm:p-10">
         <div aria-hidden="true" className="mx-auto mb-3 text-3xl">
           🗓️
         </div>
-        <h1 className="text-xl font-bold text-[var(--text)]">{t('states.noSessionsTitle')}</h1>
+        <h1 className="text-xl font-bold text-[var(--text)] sm:text-2xl">{t('states.noSessionsTitle')}</h1>
         <p className="mt-2 text-sm text-[var(--text-secondary)]">{t('states.noSessionsBody')}</p>
       </section>
     );
@@ -48,23 +48,27 @@ export function ClosedState({ nextSession, clockOffsetMs }: ClosedStateProps) {
   const opensTimeBrt = formatTime(opensAtMs, i18n.language, APP_CONFIG.TIMEZONE);
 
   return (
-    <section className="space-y-4 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6 text-center shadow-lg">
+    <section className="mx-auto max-w-xl space-y-5 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6 text-center shadow-lg sm:p-8 md:max-w-3xl">
       <div aria-hidden="true" className="mx-auto text-3xl">
         ⏰
       </div>
-      <h1 className="text-xl font-bold text-[var(--text)]">{t('states.closedTitle')}</h1>
-      <p className="text-sm text-[var(--text-secondary)]">{t('states.closedSubtitle')}</p>
-
-      <div className="rounded-2xl border border-[var(--primary)]/40 bg-[var(--primary)]/10 px-4 py-3">
-        <p className="text-xs font-medium text-[var(--text-secondary)]">
-          {t('states.opensAtLabel', { time: opensTimeBrt, tz: APP_CONFIG.TIMEZONE_LABEL })}
-        </p>
-        <p aria-live="off" className="mt-1 font-mono text-lg font-bold text-[var(--text)]">
-          {t('states.opensIn', { countdown: formatCountdown(remainingMs) })}
-        </p>
+      <div className="space-y-2">
+        <h1 className="text-xl font-bold text-[var(--text)] sm:text-2xl">{t('states.closedTitle')}</h1>
+        <p className="text-sm text-[var(--text-secondary)]">{t('states.closedSubtitle')}</p>
       </div>
 
-      <NextClassCard session={nextSession} />
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 md:items-stretch">
+        <div className="flex flex-col justify-center rounded-2xl border border-[var(--primary)]/40 bg-[var(--primary)]/10 px-5 py-4">
+          <p className="text-xs font-medium text-[var(--text-secondary)]">
+            {t('states.opensAtLabel', { time: opensTimeBrt, tz: APP_CONFIG.TIMEZONE_LABEL })}
+          </p>
+          <p aria-live="off" className="mt-1.5 font-mono text-xl font-bold text-[var(--text)] sm:text-2xl">
+            {t('states.opensIn', { countdown: formatCountdown(remainingMs) })}
+          </p>
+        </div>
+
+        <NextClassCard session={nextSession} />
+      </div>
     </section>
   );
 }

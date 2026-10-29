@@ -21,6 +21,7 @@ import type { CheckinRequest, PublicSession } from '../../../shared/schemas';
 import { ApiError, submitCheckin } from '../../lib/api';
 import { enqueue } from './offline-queue';
 import { CountryCombobox } from './CountryCombobox';
+import { NextClassCard } from './NextClassCard';
 import { RatingRadioGroup } from './RatingRadioGroup';
 import { SuccessScreen } from './SuccessScreen';
 import {
@@ -278,58 +279,106 @@ export function CheckinForm({ session, nextSession, clockOffsetMs }: CheckinForm
   const errorList = Object.entries(fieldErrors);
 
   return (
-    <div className="space-y-4">
-      {/* Detected class header chip */}
-      <div className="flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-4 py-2.5">
-        <div className="flex items-center gap-2 text-xs font-semibold text-[var(--text)]">
-          <span className="inline-block h-2.5 w-2.5 rounded-full bg-[var(--accent)]" aria-hidden="true" />
-          <span>
-            {t('header.classChip', { moment: chipMoment, tz: APP_CONFIG.TIMEZONE_LABEL })}
-          </span>
+    <div className="space-y-4 lg:grid lg:grid-cols-12 lg:items-start lg:gap-8 lg:space-y-0">
+      {/* Left column on desktop / Top chip on mobile */}
+      <aside aria-label="Session info" className="space-y-4 lg:sticky lg:top-6 lg:col-span-5">
+        <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3 lg:p-6">
+          <div className="flex flex-wrap items-center justify-between gap-2 lg:flex-col lg:items-start lg:gap-3">
+            <div className="flex items-center gap-2 text-xs font-semibold text-[var(--text)] lg:text-sm">
+              <span className="inline-block h-2.5 w-2.5 shrink-0 rounded-full bg-[var(--accent)]" aria-hidden="true" />
+              <span>
+                {t('header.classChip', { moment: chipMoment, tz: APP_CONFIG.TIMEZONE_LABEL })}
+              </span>
+            </div>
+            {session.topic && (
+              <span className="rounded-lg bg-[var(--primary)]/15 px-2.5 py-1 text-xs font-semibold text-[var(--primary)] lg:px-3 lg:py-1.5 lg:text-sm">
+                💬 {session.topic}
+              </span>
+            )}
+          </div>
+
+          <ol aria-hidden="true" className="mt-5 hidden space-y-2.5 border-t border-[var(--border)] pt-5 lg:block">
+            {([
+              [1, t('steps.step1Title')],
+              [2, t('steps.step2Title')],
+              [3, t('steps.step3Title')],
+            ] as const).map(([num, label]) => {
+              const current = draft.step === num;
+              const completed = draft.step > num;
+              return (
+                <li
+                  key={num}
+                  className={`flex items-center gap-3 rounded-xl px-3 py-2 text-xs font-semibold transition ${
+                    current
+                      ? 'border border-[var(--primary)]/50 bg-[var(--primary)]/15 text-[var(--text)]'
+                      : completed
+                        ? 'text-[var(--text)]'
+                        : 'text-[var(--text-secondary)]'
+                  }`}
+                >
+                  <span
+                    className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[11px] font-bold ${
+                      current
+                        ? 'bg-[var(--primary)] text-white'
+                        : completed
+                          ? 'bg-[var(--accent)] text-[#121214]'
+                          : 'border border-[var(--border)] bg-[var(--bg)] text-[var(--text-secondary)]'
+                    }`}
+                  >
+                    {completed ? '✓' : num}
+                  </span>
+                  <span>{label}</span>
+                </li>
+              );
+            })}
+          </ol>
         </div>
-        {session.topic && (
-          <span className="rounded-lg bg-[var(--primary)]/15 px-2.5 py-1 text-xs font-semibold text-[var(--primary)]">
-            💬 {session.topic}
-          </span>
+
+        {beforeClassStart && (
+          <div
+            role="note"
+            className="rounded-2xl border border-[var(--primary)]/40 bg-[var(--primary)]/10 px-4 py-2.5 text-xs text-[var(--text)] lg:p-4"
+          >
+            💡 {t('header.beforeStartNote')}
+          </div>
         )}
-      </div>
 
-      {beforeClassStart && (
-        <div
-          role="note"
-          className="rounded-2xl border border-[var(--primary)]/40 bg-[var(--primary)]/10 px-4 py-2.5 text-xs text-[var(--text)]"
+        {nextSession && (
+          <div className="hidden lg:block">
+            <NextClassCard session={nextSession} />
+          </div>
+        )}
+      </aside>
+
+      {/* Right column on desktop / Main form on mobile */}
+      <div className="space-y-4 lg:col-span-7">
+        {rateLimitSec !== null && (
+          <div
+            role="alert"
+            className="rounded-2xl border border-amber-400/60 bg-amber-500/10 p-4 text-sm text-[var(--text)]"
+          >
+            <p className="font-bold">{t('states.rateLimitedTitle')}</p>
+            <p className="mt-1 text-xs text-[var(--text-secondary)]">
+              {t('states.rateLimitedBody', { seconds: rateLimitSec })}
+            </p>
+          </div>
+        )}
+
+        {serverError && (
+          <div
+            role="alert"
+            className="rounded-2xl border border-red-400/60 bg-red-500/10 p-4 text-sm text-[var(--text)]"
+          >
+            <p className="font-bold">{t('states.serverErrorTitle')}</p>
+            <p className="mt-1 text-xs text-[var(--text-secondary)]">{t('states.serverErrorBody')}</p>
+          </div>
+        )}
+
+        <form
+          noValidate
+          onSubmit={(e) => void handleSubmit(e)}
+          className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-xl sm:p-7"
         >
-          💡 {t('header.beforeStartNote')}
-        </div>
-      )}
-
-      {rateLimitSec !== null && (
-        <div
-          role="alert"
-          className="rounded-2xl border border-amber-400/60 bg-amber-500/10 p-4 text-sm text-[var(--text)]"
-        >
-          <p className="font-bold">{t('states.rateLimitedTitle')}</p>
-          <p className="mt-1 text-xs text-[var(--text-secondary)]">
-            {t('states.rateLimitedBody', { seconds: rateLimitSec })}
-          </p>
-        </div>
-      )}
-
-      {serverError && (
-        <div
-          role="alert"
-          className="rounded-2xl border border-red-400/60 bg-red-500/10 p-4 text-sm text-[var(--text)]"
-        >
-          <p className="font-bold">{t('states.serverErrorTitle')}</p>
-          <p className="mt-1 text-xs text-[var(--text-secondary)]">{t('states.serverErrorBody')}</p>
-        </div>
-      )}
-
-      <form
-        noValidate
-        onSubmit={(e) => void handleSubmit(e)}
-        className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-xl"
-      >
         {/* Step progress bar & heading */}
         <div className="mb-5 flex items-center justify-between gap-2">
           <h1
@@ -742,7 +791,8 @@ export function CheckinForm({ session, nextSession, clockOffsetMs }: CheckinForm
             </button>
           )}
         </div>
-      </form>
+        </form>
+      </div>
     </div>
   );
 }

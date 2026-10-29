@@ -5,7 +5,7 @@ export function Footer() {
   const { t } = useTranslation();
   return (
     <footer className="mt-auto border-t border-[var(--border)] py-5 text-center text-xs text-[var(--text-secondary)]">
-      <div className="mx-auto flex max-w-xl flex-wrap items-center justify-center gap-x-3 gap-y-1 px-4">
+      <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-center gap-x-3 gap-y-1 px-4 sm:justify-between sm:px-6 lg:px-8">
         <span>{t('app.privacyNote')}</span>
         <Link
           to="/privacy"

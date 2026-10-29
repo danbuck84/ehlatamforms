@@ -33,7 +33,7 @@ export function AppShell() {
       </a>
       <SwUpdateAndOfflineToast />
       <Header />
-      <main id="main-content" className="mx-auto w-full max-w-xl flex-1 px-4 py-6">
+      <main id="main-content" className="mx-auto w-full max-w-6xl flex-1 px-4 py-6 sm:px-6 lg:px-8 lg:py-10">
         <Routes>
           <Route path="/" element={<CheckinPage />} />
           <Route path="/privacy" element={<PrivacyPage />} />

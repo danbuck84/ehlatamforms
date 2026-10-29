@@ -22,11 +22,11 @@ export function ShareScreen() {
   };
 
   return (
-    <section className="mx-auto max-w-lg rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6 text-center shadow-xl">
-      <h2 className="text-xl font-bold text-[var(--text)]">Check in at {APP_CONFIG.APP_NAME}</h2>
-      <p className="mt-1 text-xs text-[var(--text-secondary)]">{APP_CONFIG.CO_BRAND}</p>
+    <section className="mx-auto max-w-2xl rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6 text-center shadow-xl sm:p-10">
+      <h2 className="text-2xl font-bold text-[var(--text)]">Check in at {APP_CONFIG.APP_NAME}</h2>
+      <p className="mt-1 text-xs text-[var(--text-secondary)] sm:text-sm">{APP_CONFIG.CO_BRAND}</p>
 
-      <div className="mx-auto my-6 flex h-72 w-72 items-center justify-center rounded-2xl bg-white p-4 shadow-inner">
+      <div className="mx-auto my-6 flex h-72 w-72 items-center justify-center rounded-2xl bg-white p-4 shadow-inner sm:h-80 sm:w-80">
         {qrSvg ? (
           <img src={qrSvg} alt="QR code for student check-in" className="h-full w-full" />
         ) : (

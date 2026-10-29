@@ -40,6 +40,30 @@ import { LiveView } from './LiveView';
 const ShareScreen = lazy(() => import('./ShareScreen').then((m) => ({ default: m.ShareScreen })));
 const TrendChart = lazy(() => import('./TrendChart').then((m) => ({ default: m.TrendChart })));
 
+const SPEAKING_LABELS: Record<string, string> = {
+  a_lot: 'Spoke a lot',
+  a_little: 'Spoke a little',
+  chat_only: 'Chat only',
+  listened: 'Only listened',
+};
+
+const LEVEL_LABELS: Record<string, string> = {
+  too_easy: 'Too easy',
+  a_bit_easy: 'A bit easy',
+  just_right: 'Just right',
+  a_bit_hard: 'A bit hard',
+  too_hard: 'Too hard',
+  none: 'Unanswered',
+};
+
+const ROLE_LABELS: Record<string, string> = {
+  rocketseat_student: 'Rocketseat student',
+  digital_house_student: 'Digital House student',
+  dhrs_team: 'DH / Rocketseat team',
+  other: 'Other / Ally',
+  none: 'Unanswered',
+};
+
 type AdminTab = 'sessions' | 'live' | 'metrics' | 'share';
 
 interface SessionRow {
@@ -68,6 +92,7 @@ export default function AdminPage() {
   const [checkins, setCheckins] = useState<CheckinRow[]>([]);
   const [studentsCount, setStudentsCount] = useState({ total: 0, returning: 0 });
   const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
+  const [metricsSessionId, setMetricsSessionId] = useState<string | null>(null);
   const [loadingData, setLoadingData] = useState(false);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
 
@@ -153,6 +178,9 @@ export default function AdminPage() {
 
       setSessions(rows);
       setSelectedSessionId((prev) => prev ?? rows[0]?.id ?? null);
+      setMetricsSessionId(
+        (prev) => prev ?? rows.find((r) => r.stats.total > 0)?.id ?? rows[0]?.id ?? null,
+      );
 
       setCheckins(checkinsSnap.docs.map((d) => ({ id: d.id, doc: d.data() as CheckinDoc<Timestamp> })));
 
@@ -554,6 +582,10 @@ export default function AdminPage() {
     ) ?? sessions[0];
 
   const activeSession = sessions.find((s) => s.id === selectedSessionId) ?? openSession ?? null;
+  const metricsSession =
+    sessions.find((s) => s.id === metricsSessionId) ??
+    sessions.find((s) => s.stats.total > 0) ??
+    activeSession;
 
   return (
     <div className="space-y-6">
@@ -993,6 +1025,143 @@ export default function AdminPage() {
               🔧 Recompute Stats
             </button>
           </div>
+
+          {/* Per-session breakdown (§9) */}
+          {metricsSession && (
+            <div className="space-y-4 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <h2 className="text-sm font-bold text-[var(--text)]">Per-Session Breakdown</h2>
+                  <p className="text-xs text-[var(--text-secondary)]">
+                    Select any class to inspect attendance, Zoom conversion, rating, speaking, and level
+                  </p>
+                </div>
+                <select
+                  aria-label="Select session for metrics"
+                  value={metricsSession.id}
+                  onChange={(e) => setMetricsSessionId(e.target.value)}
+                  className="min-h-11 rounded-xl border border-[var(--border)] bg-[var(--bg)] px-3 text-xs font-semibold text-[var(--text)]"
+                >
+                  {sessions.map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {s.id}
+                      {s.doc.topic ? ` · ${s.doc.topic}` : ''} ({s.stats.total} check-ins)
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                <div className="rounded-xl border border-[var(--border)] bg-[var(--bg)] p-3.5">
+                  <p className="text-xs text-[var(--text-secondary)]">Check-ins</p>
+                  <p className="mt-1 text-xl font-extrabold text-[var(--text)]">
+                    {metricsSession.stats.total}
+                  </p>
+                </div>
+                <div className="rounded-xl border border-[var(--border)] bg-[var(--bg)] p-3.5">
+                  <p className="text-xs text-[var(--text-secondary)]">Peak Audience</p>
+                  <p className="mt-1 text-xl font-extrabold text-[var(--text)]">
+                    {metricsSession.doc.peakAudience ?? '—'}
+                  </p>
+                </div>
+                <div className="rounded-xl border border-[var(--border)] bg-[var(--bg)] p-3.5">
+                  <p className="text-xs text-[var(--text-secondary)]">Check-ins ÷ Peak</p>
+                  <p className="mt-1 text-xl font-extrabold text-[var(--accent)]">
+                    {metricsSession.doc.peakAudience && metricsSession.doc.peakAudience > 0
+                      ? `${((metricsSession.stats.total / metricsSession.doc.peakAudience) * 100).toFixed(1)}%`
+                      : '—'}
+                  </p>
+                </div>
+                <div className="rounded-xl border border-[var(--border)] bg-[var(--bg)] p-3.5">
+                  <p className="text-xs text-[var(--text-secondary)]">Avg Rating</p>
+                  <p className="mt-1 text-xl font-extrabold text-[var(--primary)]">
+                    ⭐{' '}
+                    {metricsSession.stats.ratingCount > 0
+                      ? (metricsSession.stats.ratingSum / metricsSession.stats.ratingCount).toFixed(2)
+                      : '—'}
+                  </p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
+                <div className="rounded-xl border border-[var(--border)] bg-[var(--bg)] p-3.5">
+                  <h3 className="mb-2 text-xs font-bold text-[var(--text)]">Speaking</h3>
+                  <ul className="space-y-1 text-xs">
+                    {Object.entries(metricsSession.stats.bySpeaking)
+                      .sort((a, b) => b[1] - a[1])
+                      .map(([k, count]) => {
+                        const key = decodeStatsKey(k);
+                        return (
+                          <li key={key} className="flex items-center justify-between">
+                            <span className="text-[var(--text-secondary)]">
+                              {SPEAKING_LABELS[key] ?? key}
+                            </span>
+                            <span className="font-mono font-bold text-[var(--text)]">{count}</span>
+                          </li>
+                        );
+                      })}
+                  </ul>
+                </div>
+
+                <div className="rounded-xl border border-[var(--border)] bg-[var(--bg)] p-3.5">
+                  <h3 className="mb-2 text-xs font-bold text-[var(--text)]">Level</h3>
+                  <ul className="space-y-1 text-xs">
+                    {Object.entries(metricsSession.stats.byLevel)
+                      .sort((a, b) => b[1] - a[1])
+                      .map(([k, count]) => {
+                        const key = decodeStatsKey(k);
+                        return (
+                          <li key={key} className="flex items-center justify-between">
+                            <span className="text-[var(--text-secondary)]">
+                              {LEVEL_LABELS[key] ?? key}
+                            </span>
+                            <span className="font-mono font-bold text-[var(--text)]">{count}</span>
+                          </li>
+                        );
+                      })}
+                  </ul>
+                </div>
+
+                <div className="rounded-xl border border-[var(--border)] bg-[var(--bg)] p-3.5">
+                  <h3 className="mb-2 text-xs font-bold text-[var(--text)]">Countries</h3>
+                  <ul className="space-y-1 text-xs">
+                    {Object.entries(metricsSession.stats.byCountry)
+                      .sort((a, b) => b[1] - a[1])
+                      .map(([k, count]) => {
+                        const code = decodeStatsKey(k);
+                        return (
+                          <li key={code} className="flex items-center justify-between">
+                            <span className="text-[var(--text-secondary)]">
+                              {flagEmoji(code)} {code}
+                            </span>
+                            <span className="font-mono font-bold text-[var(--text)]">{count}</span>
+                          </li>
+                        );
+                      })}
+                  </ul>
+                </div>
+
+                <div className="rounded-xl border border-[var(--border)] bg-[var(--bg)] p-3.5">
+                  <h3 className="mb-2 text-xs font-bold text-[var(--text)]">Roles</h3>
+                  <ul className="space-y-1 text-xs">
+                    {Object.entries(metricsSession.stats.byRole)
+                      .sort((a, b) => b[1] - a[1])
+                      .map(([k, count]) => {
+                        const key = decodeStatsKey(k);
+                        return (
+                          <li key={key} className="flex items-center justify-between">
+                            <span className="text-[var(--text-secondary)]">
+                              {ROLE_LABELS[key] ?? key}
+                            </span>
+                            <span className="font-mono font-bold text-[var(--text)]">{count}</span>
+                          </li>
+                        );
+                      })}
+                  </ul>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Trend chart */}
           <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5">

@@ -6,13 +6,6 @@ let appInstance: FirebaseApp | null = null;
 let authInstance: Auth | null = null;
 let dbInstance: Firestore | null = null;
 
-export const ALLOWED_ADMIN_EMAILS = (
-  (import.meta.env.VITE_ADMIN_EMAILS as string | undefined) ?? 'daniel.buck@rocketseat.team'
-)
-  .split(',')
-  .map((s) => s.trim().toLowerCase())
-  .filter(Boolean);
-
 export function getClientFirebase(): { app: FirebaseApp; auth: Auth; db: Firestore } {
   if (!appInstance) {
     const existing = getApps()[0];

@@ -14,6 +14,7 @@ import {
   collection,
   doc,
   getDocs,
+  limit,
   orderBy,
   query,
   setDoc,
@@ -33,7 +34,7 @@ import {
 } from '../../../shared/models';
 import { zonedDateKey, zonedTimeKey, zonedWallTimeToUtc } from '../../../shared/time';
 import { isOpenAt } from '../../../shared/window';
-import { ALLOWED_ADMIN_EMAILS, getClientFirebase } from './firebase-client';
+import { getClientFirebase } from './firebase-client';
 import { generateTueThuCandidates, suggestRandomKeyword } from './keywords';
 import { LiveView } from './LiveView';
 
@@ -126,23 +127,34 @@ export default function AdminPage() {
       }
     }
     const unsub = onAuthStateChanged(auth, (u) => {
-      if (u) {
-        const email = (u.email ?? '').trim().toLowerCase();
-        if (!u.emailVerified || !ALLOWED_ADMIN_EMAILS.includes(email)) {
+      if (!u) {
+        setUser(null);
+        setAuthReady(true);
+        return;
+      }
+      if (!u.emailVerified) {
+        setUnauthorizedEmail(u.email ?? 'unknown');
+        setUser(null);
+        void signOut(auth);
+        setAuthReady(true);
+        return;
+      }
+      // Verify admin permission server-side via Firestore Security Rules without exposing admin emails in client JS.
+      void getDocs(query(collection(db, 'sessions'), limit(1)))
+        .then(() => {
+          setUnauthorizedEmail(null);
+          setUser(u);
+          setAuthReady(true);
+        })
+        .catch(() => {
           setUnauthorizedEmail(u.email ?? 'unknown');
           setUser(null);
           void signOut(auth);
-        } else {
-          setUnauthorizedEmail(null);
-          setUser(u);
-        }
-      } else {
-        setUser(null);
-      }
-      setAuthReady(true);
+          setAuthReady(true);
+        });
     });
     return () => unsub();
-  }, [auth]);
+  }, [auth, db]);
 
   const [nowMs, setNowMs] = useState<number>(() => Date.now());
   useEffect(() => {
@@ -487,7 +499,7 @@ export default function AdminPage() {
       <section className="mx-auto max-w-md space-y-5 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6 shadow-xl">
         <h1 className="text-xl font-bold text-[var(--text)]">Teacher Admin · {APP_CONFIG.APP_NAME}</h1>
         <p className="text-xs text-[var(--text-secondary)]">
-          Restricted to authorized teachers ({ALLOWED_ADMIN_EMAILS.join(', ')}).
+          Restricted to authorized teachers only.
         </p>
 
         {unauthorizedEmail && (
@@ -548,7 +560,7 @@ export default function AdminPage() {
             <input
               id="admin-email-link"
               type="email"
-              placeholder="daniel.buck@rocketseat.team"
+              placeholder="you@domain.com"
               value={emailLinkAddress}
               onChange={(e) => setEmailLinkAddress(e.target.value)}
               className="min-h-11 flex-1 rounded-xl border border-[var(--border)] bg-[var(--bg)] px-3 text-sm text-[var(--text)]"

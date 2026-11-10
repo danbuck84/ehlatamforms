@@ -17,7 +17,7 @@ import {
   suggestEmail,
 } from '../../../shared/email';
 import { formatClassMoment } from '../../../shared/time';
-import type { CheckinRequest, PublicSession } from '../../../shared/schemas';
+import type { CheckinRequest, CheckinStreak, PublicSession } from '../../../shared/schemas';
 import { ApiError, submitCheckin } from '../../lib/api';
 import { enqueue } from './offline-queue';
 import { CountryCombobox } from './CountryCombobox';
@@ -52,6 +52,7 @@ export function CheckinForm({ session, nextSession, clockOffsetMs }: CheckinForm
   const initial = useMemo(() => loadInitialDraft(session.id), [session.id]);
   const [draft, setDraft] = useState<CheckinDraft>(initial.draft);
   const [prefilledEmail, setPrefilledEmail] = useState<string | null>(initial.prefilledEmail);
+  const [returningStreak, setReturningStreak] = useState<number | null>(initial.returningStreak);
   const [websiteHoneypot, setWebsiteHoneypot] = useState('');
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [rateLimitSec, setRateLimitSec] = useState<number | null>(null);
@@ -60,6 +61,7 @@ export function CheckinForm({ session, nextSession, clockOffsetMs }: CheckinForm
   const [done, setDone] = useState<{
     variant: 'created' | 'duplicate' | 'queued';
     next: PublicSession | null;
+    streak?: CheckinStreak;
   } | null>(null);
 
   const [nowMs, setNowMs] = useState<number>(() => Date.now());
@@ -151,6 +153,7 @@ export function CheckinForm({ session, nextSession, clockOffsetMs }: CheckinForm
   const handleResetReturning = () => {
     clearReturningProfile();
     setPrefilledEmail(null);
+    setReturningStreak(null);
     updateDraft({ email: '', role: null });
   };
 
@@ -208,9 +211,11 @@ export function CheckinForm({ session, nextSession, clockOffsetMs }: CheckinForm
         email: payload.email,
         country: payload.country,
         role: payload.role,
+        streak: res.streak?.current,
+        totalCheckins: res.streak?.total,
       });
       clearDraft(session.id);
-      setDone({ variant: res.status, next: res.next ?? nextSession });
+      setDone({ variant: res.status, next: res.next ?? nextSession, streak: res.streak });
     } catch (err) {
       if (err instanceof ApiError) {
         const code = err.data.error;
@@ -266,7 +271,7 @@ export function CheckinForm({ session, nextSession, clockOffsetMs }: CheckinForm
   const chipMoment = formatClassMoment(startsAtMs, i18n.language, APP_CONFIG.TIMEZONE);
 
   if (done) {
-    return <SuccessScreen variant={done.variant} nextSession={done.next} />;
+    return <SuccessScreen variant={done.variant} nextSession={done.next} streak={done.streak} />;
   }
 
   const stepTitle =
@@ -440,9 +445,19 @@ export function CheckinForm({ session, nextSession, clockOffsetMs }: CheckinForm
           <div className="space-y-5">
             {prefilledEmail && (
               <div className="flex items-center justify-between gap-2 rounded-xl border border-[var(--border)] bg-[var(--bg)] px-3.5 py-2 text-xs">
-                <span className="truncate text-[var(--text-secondary)]">
-                  👋 {t('fields.prefilledNote', { email: prefilledEmail })}
-                </span>
+                <div className="flex min-w-0 items-center gap-2">
+                  <span className="truncate text-[var(--text-secondary)]">
+                    👋 {t('fields.prefilledNote', { email: prefilledEmail })}
+                  </span>
+                  {returningStreak !== null && returningStreak >= 1 && (
+                    <span
+                      title="Current attendance streak"
+                      className="inline-flex shrink-0 items-center gap-1 rounded-full border border-amber-400/50 bg-amber-500/15 px-2 py-0.5 text-[11px] font-extrabold text-[var(--text)]"
+                    >
+                      🔥 {returningStreak}
+                    </span>
+                  )}
+                </div>
                 <button
                   type="button"
                   onClick={handleResetReturning}

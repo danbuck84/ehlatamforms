@@ -79,11 +79,18 @@ export type CheckinErrorCode =
   | 'bot'
   | 'server';
 
+export interface CheckinStreak {
+  current: number;
+  best: number;
+  total: number;
+}
+
 export interface CheckinSuccess {
   status: 'created' | 'duplicate';
   sessionId: string;
   late: boolean;
   next: PublicSession | null;
+  streak?: CheckinStreak;
 }
 
 export interface CheckinError {

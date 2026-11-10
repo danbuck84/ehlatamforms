@@ -1,5 +1,12 @@
 import { FieldValue, type Firestore } from 'firebase-admin/firestore';
-import { applyCheckinToStats, emptyStats, statsKey, type CheckinDoc, type SessionStatsDoc } from '../../../shared/models';
+import {
+  applyCheckinToStats,
+  computeStreakFromSessions,
+  emptyStats,
+  statsKey,
+  type CheckinDoc,
+  type SessionStatsDoc,
+} from '../../../shared/models';
 
 /** Deletes a check-in and keeps sessionStats and the student's counters consistent. */
 export async function deleteCheckin(db: Firestore, checkinId: string): Promise<'deleted' | 'not_found'> {
@@ -37,7 +44,15 @@ export async function recomputeStats(db: Firestore, sessionId?: string): Promise
   const bySession = new Map<string, SessionStatsDoc>();
   const students = new Map<
     string,
-    { firstSeenAt: FirebaseFirestore.Timestamp; lastSeenAt: FirebaseFirestore.Timestamp; totalCheckins: number; lastCountry: string; emailDomain: string; isTeacher: boolean }
+    {
+      firstSeenAt: FirebaseFirestore.Timestamp;
+      lastSeenAt: FirebaseFirestore.Timestamp;
+      totalCheckins: number;
+      lastCountry: string;
+      emailDomain: string;
+      isTeacher: boolean;
+      sessions: Set<string>;
+    }
   >();
 
   for (const d of snap.docs) {
@@ -55,9 +70,11 @@ export async function recomputeStats(db: Firestore, sessionId?: string): Promise
         lastCountry: c.country,
         emailDomain: c.emailDomain,
         isTeacher: c.isTeacher,
+        sessions: new Set([c.sessionId]),
       });
     } else {
       s.totalCheckins++;
+      s.sessions.add(c.sessionId);
       if (c.submittedAt.toMillis() < s.firstSeenAt.toMillis()) s.firstSeenAt = c.submittedAt;
       if (c.submittedAt.toMillis() >= s.lastSeenAt.toMillis()) {
         s.lastSeenAt = c.submittedAt;
@@ -72,9 +89,26 @@ export async function recomputeStats(db: Firestore, sessionId?: string): Promise
     writer.set(db.collection('sessionStats').doc(id), bySession.get(id) ?? emptyStats());
   }
   if (!sessionId) {
+    const chronologicalSessions = [...bySession.keys()].sort((a, b) => a.localeCompare(b));
     const existing = await db.collection('students').listDocuments();
     for (const ref of existing) if (!students.has(ref.id)) writer.delete(ref);
-    for (const [id, s] of students) writer.set(db.collection('students').doc(id), s);
+    for (const [id, s] of students) {
+      const { currentStreak, bestStreak, lastSessionId } = computeStreakFromSessions(
+        s.sessions,
+        chronologicalSessions,
+      );
+      writer.set(db.collection('students').doc(id), {
+        firstSeenAt: s.firstSeenAt,
+        lastSeenAt: s.lastSeenAt,
+        totalCheckins: s.totalCheckins,
+        currentStreak,
+        bestStreak,
+        lastSessionId: lastSessionId ?? undefined,
+        lastCountry: s.lastCountry,
+        emailDomain: s.emailDomain,
+        isTeacher: s.isTeacher,
+      });
+    }
   }
   await writer.close();
   return { sessions: bySession.size, checkins: snap.size };

@@ -126,7 +126,11 @@
     "iosSheetTitle": "Adicionar o {{appName}} à Tela de Início",
     "iosStep1": "1. Toque no botão Compartilhar na barra do Safari.",
     "iosStep2": "2. Role para baixo e toque em \"Adicionar à Tela de Início\".",
-    "iosStep3": "3. Toque em \"Adicionar\" no canto superior."
+    "iosStep3": "3. Toque em \"Adicionar\" no canto superior.",
+    "streakOne": "1 aula de ofensiva iniciada!",
+    "streakMany": "{{count}} aulas seguidas de ofensiva!",
+    "streakSubtitle": "{{total}} presenças no total · Recorde: {{best}}",
+    "streakKeepGoing": "Volte na próxima aula para manter o foguinho aceso!"
   },
   "privacy": {
     "title": "Aviso de Privacidade",

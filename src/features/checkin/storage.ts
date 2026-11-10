@@ -29,6 +29,8 @@ export interface ReturningProfile {
   email: string;
   country: CountryCode;
   role: Role | null;
+  streak?: number;
+  totalCheckins?: number;
 }
 
 const PROFILE_KEY = 'englishtalk:profile';
@@ -46,7 +48,10 @@ export function loadReturningProfile(): ReturningProfile | null {
       isCountryCode(data.country)
     ) {
       const role = data.role && (ROLES as readonly string[]).includes(data.role) ? data.role : null;
-      return { email: data.email, country: data.country, role };
+      const streak = typeof data.streak === 'number' && data.streak >= 1 ? data.streak : undefined;
+      const totalCheckins =
+        typeof data.totalCheckins === 'number' && data.totalCheckins >= 1 ? data.totalCheckins : undefined;
+      return { email: data.email, country: data.country, role, streak, totalCheckins };
     }
   } catch {
     // ignore corrupt storage
@@ -73,9 +78,11 @@ export function clearReturningProfile(): void {
 export function loadInitialDraft(sessionId: string): {
   draft: CheckinDraft;
   prefilledEmail: string | null;
+  returningStreak: number | null;
 } {
   const profile = loadReturningProfile();
   const tzGuess = guessCountryFromTimeZone(deviceTimeZone());
+  const returningStreak = profile?.streak ?? null;
 
   const fallback: CheckinDraft = {
     email: profile?.email ?? '',
@@ -93,7 +100,7 @@ export function loadInitialDraft(sessionId: string): {
   try {
     const raw = sessionStorage.getItem(draftKey(sessionId));
     if (!raw) {
-      return { draft: fallback, prefilledEmail: profile?.email ?? null };
+      return { draft: fallback, prefilledEmail: profile?.email ?? null, returningStreak };
     }
     const parsed = JSON.parse(raw) as Partial<CheckinDraft>;
     const country =
@@ -124,9 +131,10 @@ export function loadInitialDraft(sessionId: string): {
         step,
       },
       prefilledEmail: profile?.email ?? null,
+      returningStreak,
     };
   } catch {
-    return { draft: fallback, prefilledEmail: profile?.email ?? null };
+    return { draft: fallback, prefilledEmail: profile?.email ?? null, returningStreak };
   }
 }
 

@@ -24,6 +24,7 @@ import { toCsv } from '../../../shared/csv';
 import { flagEmoji } from '../../../shared/country';
 import { compactKeyword } from '../../../shared/keyword';
 import {
+  computeStreakFromSessions,
   decodeStatsKey,
   emptyStats,
   type CheckinDoc,
@@ -499,6 +500,53 @@ export default function AdminPage() {
 
   const effectiveMetricsSessionId =
     metricsSessionId ?? sessions.find((s) => s.stats.total > 0)?.id ?? sessions[0]?.id ?? null;
+
+  const topStreaks = useMemo(() => {
+    const chronologicalIds = sessions
+      .filter((s) => s.doc.status === 'scheduled')
+      .map((s) => s.id)
+      .sort((a, b) => a.localeCompare(b));
+
+    const byStudent = new Map<
+      string,
+      { email: string; country: string; sessionIds: Set<string> }
+    >();
+    for (const c of checkins) {
+      if (c.doc.isTeacher) continue;
+      const key = c.doc.emailCanonical || c.doc.email.toLowerCase();
+      const existing = byStudent.get(key);
+      if (existing) {
+        existing.sessionIds.add(c.doc.sessionId);
+        existing.country = c.doc.country;
+      } else {
+        byStudent.set(key, {
+          email: c.doc.email,
+          country: c.doc.country,
+          sessionIds: new Set([c.doc.sessionId]),
+        });
+      }
+    }
+
+    return Array.from(byStudent.values())
+      .map((st) => {
+        const s = computeStreakFromSessions(st.sessionIds, chronologicalIds);
+        return {
+          email: st.email,
+          country: st.country,
+          total: st.sessionIds.size,
+          currentStreak: s.currentStreak,
+          bestStreak: s.bestStreak,
+          lastSessionId: s.lastSessionId,
+        };
+      })
+      .sort(
+        (a, b) =>
+          b.currentStreak - a.currentStreak ||
+          b.total - a.total ||
+          a.email.localeCompare(b.email),
+      )
+      .slice(0, 10);
+  }, [sessions, checkins]);
 
   const radar = useMemo(() => {
     const inputs = checkins.map((c) => ({
@@ -1261,8 +1309,31 @@ export default function AdminPage() {
             </Suspense>
           </div>
 
-          {/* Countries & Domains */}
-          <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+          {/* Streaks, Countries & Domains */}
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+            <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5">
+              <h2 className="mb-3 text-sm font-bold text-[var(--text)]">🔥 Top Student Streaks</h2>
+              {topStreaks.length === 0 ? (
+                <p className="text-xs text-[var(--text-secondary)]">No student check-ins yet.</p>
+              ) : (
+                <ul className="space-y-1.5 text-xs">
+                  {topStreaks.map((st) => (
+                    <li key={st.email} className="flex items-center justify-between gap-2">
+                      <span className="truncate text-[var(--text)]">
+                        {flagEmoji(st.country)} {st.email}
+                      </span>
+                      <span className="shrink-0 font-mono font-bold text-amber-400">
+                        🔥 {st.currentStreak}{' '}
+                        <span className="font-normal text-[var(--text-secondary)]">
+                          ({st.total})
+                        </span>
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+
             <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5">
               <h2 className="mb-3 text-sm font-bold text-[var(--text)]">Top Countries</h2>
               <ul className="space-y-1.5 text-xs">

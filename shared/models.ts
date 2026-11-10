@@ -51,9 +51,49 @@ export interface StudentDoc<TS = unknown> {
   firstSeenAt: TS;
   lastSeenAt: TS;
   totalCheckins: number;
+  currentStreak?: number;
+  bestStreak?: number;
+  lastSessionId?: string;
   lastCountry: string;
   emailDomain: string;
   isTeacher: boolean;
+}
+
+/**
+ * Computes a student's consecutive-session streak and all-time best streak
+ * given the ordered list of sessions that have taken place (`chronologicalSessions`)
+ * and the set of `sessionId`s the student attended.
+ */
+export function computeStreakFromSessions(
+  attendedSessionIds: ReadonlySet<string>,
+  chronologicalSessions: readonly string[],
+): { currentStreak: number; bestStreak: number; lastSessionId: string | null } {
+  let lastSessionId: string | null = null;
+  for (const sid of chronologicalSessions) {
+    if (attendedSessionIds.has(sid)) {
+      lastSessionId = sid;
+    }
+  }
+  if (!lastSessionId) {
+    return { currentStreak: 0, bestStreak: 0, lastSessionId: null };
+  }
+
+  let run = 0;
+  let bestStreak = 0;
+  for (const sid of chronologicalSessions) {
+    if (sid > lastSessionId) break;
+    if (attendedSessionIds.has(sid)) {
+      run++;
+      if (run > bestStreak) bestStreak = run;
+    } else {
+      run = 0;
+    }
+  }
+  return {
+    currentStreak: Math.max(1, run),
+    bestStreak: Math.max(1, bestStreak),
+    lastSessionId,
+  };
 }
 
 export interface SessionStatsDoc {

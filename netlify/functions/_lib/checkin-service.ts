@@ -110,16 +110,36 @@ export async function processCheckin(raw: unknown, deps: CheckinDeps): Promise<S
     keywordMatch = match;
   }
 
-  // 8. Transactional create + student + stats.
+  // 8. Transactional create + student + stats + streak.
   const isTeacher = deps.adminEmails.includes(email) || deps.adminEmails.map(canonicalEmail).includes(emailCanonical);
   const checkinRef = db.collection('checkins').doc(checkinDocId(input.sessionId, emailKey));
   const studentRef = db.collection('students').doc(emailKey);
   const statsRef = db.collection('sessionStats').doc(input.sessionId);
   const nowTs = Timestamp.fromMillis(now);
 
-  const created = await db.runTransaction(async (tx) => {
-    const [existing, student] = await Promise.all([tx.get(checkinRef), tx.get(studentRef)]);
-    if (existing.exists) return false;
+  // Find the immediately preceding scheduled session to evaluate streak continuity.
+  const prevSessionsSnap = await db
+    .collection('sessions')
+    .where('startsAt', '<', session.doc.startsAt)
+    .orderBy('startsAt', 'desc')
+    .limit(4)
+    .get();
+  const prevSessionDoc = prevSessionsSnap.docs.find((d) => d.get('status') !== 'cancelled');
+  const prevSessionId = prevSessionDoc?.id ?? null;
+  const prevCheckinRef = prevSessionId ? db.collection('checkins').doc(checkinDocId(prevSessionId, emailKey)) : null;
+
+  const { created, streak } = await db.runTransaction(async (tx) => {
+    const [existing, student, prevCheckin] = await Promise.all([
+      tx.get(checkinRef),
+      tx.get(studentRef),
+      prevCheckinRef ? tx.get(prevCheckinRef) : Promise.resolve(null),
+    ]);
+    if (existing.exists) {
+      const total = (student.get('totalCheckins') as number | undefined) ?? 1;
+      const current = (student.get('currentStreak') as number | undefined) ?? 1;
+      const best = Math.max(current, (student.get('bestStreak') as number | undefined) ?? current);
+      return { created: false, streak: { current, best, total } };
+    }
 
     const doc: CheckinDoc<Timestamp> = {
       sessionId: input.sessionId,
@@ -143,10 +163,25 @@ export async function processCheckin(raw: unknown, deps: CheckinDeps): Promise<S
     };
     tx.create(checkinRef, doc);
 
+    const prevTotal = student.exists ? ((student.get('totalCheckins') as number | undefined) ?? 0) : 0;
+    const prevStreak = student.exists ? ((student.get('currentStreak') as number | undefined) ?? 1) : 0;
+    const prevBest = student.exists ? ((student.get('bestStreak') as number | undefined) ?? 1) : 0;
+    const prevLastSession = student.exists ? ((student.get('lastSessionId') as string | undefined) ?? null) : null;
+    const attendedPrev = Boolean(
+      prevSessionId && (prevLastSession === prevSessionId || (prevCheckin && prevCheckin.exists)),
+    );
+
+    const current = attendedPrev ? Math.max(1, prevStreak) + 1 : 1;
+    const total = prevTotal + 1;
+    const best = Math.max(prevBest, current, 1);
+
     if (student.exists) {
       tx.update(studentRef, {
         lastSeenAt: nowTs,
-        totalCheckins: FieldValue.increment(1),
+        totalCheckins: total,
+        currentStreak: current,
+        bestStreak: best,
+        lastSessionId: input.sessionId,
         lastCountry: input.country,
         emailDomain: domain,
         isTeacher,
@@ -156,6 +191,9 @@ export async function processCheckin(raw: unknown, deps: CheckinDeps): Promise<S
         firstSeenAt: nowTs,
         lastSeenAt: nowTs,
         totalCheckins: 1,
+        currentStreak: 1,
+        bestStreak: 1,
+        lastSessionId: input.sessionId,
         lastCountry: input.country,
         emailDomain: domain,
         isTeacher,
@@ -179,7 +217,7 @@ export async function processCheckin(raw: unknown, deps: CheckinDeps): Promise<S
         { merge: true },
       );
     }
-    return true;
+    return { created: true, streak: { current, best, total } };
   });
 
   const { next } = await currentSessions(db, now);
@@ -196,6 +234,7 @@ export async function processCheckin(raw: unknown, deps: CheckinDeps): Promise<S
       sessionId: input.sessionId,
       late: acceptance.late,
       next: next ? toPublicSession(next) : null,
+      streak,
     },
   };
 }

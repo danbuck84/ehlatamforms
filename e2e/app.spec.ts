@@ -61,6 +61,7 @@ test.describe('EnglishTalk E2E — Student flow, i18n, a11y, offline & admin gat
           sessionId: '2026-10-27',
           late: false,
           next: NEXT_SESSION,
+          streak: { current: 3, best: 3, total: 4 },
         }),
       });
     });
@@ -116,6 +117,10 @@ test.describe('EnglishTalk E2E — Student flow, i18n, a11y, offline & admin gat
         name: /Thank you! Your attendance is registered\. See you in the next class!/i,
       }),
     ).toBeVisible();
+    await expect(page.getByText(/3 classes in a row!/i)).toBeVisible();
+
+    const axeSuccess = await new AxeBuilder({ page }).analyze();
+    expect(axeSuccess.violations).toEqual([]);
   });
 
   test('renders Portuguese and Spanish (without opening ¡ or ¿) and passes axe on closed & privacy screens', async ({

@@ -126,7 +126,11 @@
     "iosSheetTitle": "Agregar {{appName}} a la pantalla de inicio",
     "iosStep1": "1. Toca el botón Compartir en la barra de Safari.",
     "iosStep2": "2. Desplázate hacia abajo y toca \"Agregar a pantalla de inicio\".",
-    "iosStep3": "3. Toca \"Agregar\" en la esquina superior."
+    "iosStep3": "3. Toca \"Agregar\" en la esquina superior.",
+    "streakOne": "Racha de 1 clase iniciada!",
+    "streakMany": "{{count}} clases seguidas en racha!",
+    "streakSubtitle": "{{total}} clases en total · Récord: {{best}}",
+    "streakKeepGoing": "Vuelve en la próxima clase para mantener encendida tu racha!"
   },
   "privacy": {
     "title": "Aviso de Privacidad",

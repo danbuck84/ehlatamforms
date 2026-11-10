@@ -296,3 +296,38 @@ describe('student demand & improvement radar (trilingual feedback classification
     expect(radar.improvementCategories.find((i) => i.id === 'duration_time')?.count).toBe(1);
   });
 });
+
+describe('student attendance streak (ofensiva 🔥)', async () => {
+  const { computeStreakFromSessions } = await import('./models');
+
+  it('tracks consecutive attended sessions and preserves best streak across missed sessions', () => {
+    const schedule = [
+      '2026-10-27',
+      '2026-10-29',
+      '2026-11-03',
+      '2026-11-05',
+      '2026-11-10',
+      '2026-11-12',
+    ];
+
+    const consecutive = computeStreakFromSessions(
+      new Set(['2026-10-27', '2026-10-29', '2026-11-03']),
+      schedule,
+    );
+    expect(consecutive).toEqual({
+      currentStreak: 3,
+      bestStreak: 3,
+      lastSessionId: '2026-11-03',
+    });
+
+    const brokenThenResumed = computeStreakFromSessions(
+      new Set(['2026-10-27', '2026-10-29', '2026-11-03', '2026-11-10']),
+      schedule,
+    );
+    expect(brokenThenResumed).toEqual({
+      currentStreak: 1,
+      bestStreak: 3,
+      lastSessionId: '2026-11-10',
+    });
+  });
+});

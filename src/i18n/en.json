@@ -126,7 +126,11 @@
     "iosSheetTitle": "Add {{appName}} to your Home Screen",
     "iosStep1": "1. Tap the Share button in Safari's toolbar.",
     "iosStep2": "2. Scroll down and tap \"Add to Home Screen\".",
-    "iosStep3": "3. Tap \"Add\" in the top corner."
+    "iosStep3": "3. Tap \"Add\" in the top corner.",
+    "streakOne": "1-class streak started!",
+    "streakMany": "{{count}} classes in a row!",
+    "streakSubtitle": "{{total}} total classes · Best streak: {{best}}",
+    "streakKeepGoing": "Come back next class to keep your flame burning!"
   },
   "privacy": {
     "title": "Privacy Notice",

@@ -242,3 +242,57 @@ describe('Zod schemas, country helpers and CSV export', () => {
     expect(csv).toBe("\uFEFFa,b\r\n1,'+cmd\r\n");
   });
 });
+
+describe('student demand & improvement radar (trilingual feedback classification)', async () => {
+  const { buildFeedbackRadar } = await import('../src/features/admin/feedback-radar');
+
+  it('clusters trilingual topic requests and separates actionable improvements from pure praise', () => {
+    const radar = buildFeedbackRadar([
+      {
+        id: '1',
+        sessionId: '2026-10-27',
+        email: 'a@gmail.com',
+        country: 'BR',
+        speaking: 'a_lot',
+        level: 'just_right',
+        rating: 5,
+        topicSuggestion: 'Words used in tech meetings like daily and code review',
+        comment: 'The class was amazing!',
+        isTeacher: false,
+      },
+      {
+        id: '2',
+        sessionId: '2026-10-27',
+        email: 'b@gmail.com',
+        country: 'BR',
+        speaking: 'listened',
+        level: 'too_easy',
+        rating: 4,
+        topicSuggestion: 'Temas livres onde possamos conhecer o grupo',
+        comment: 'Meu nível não é tão bom quanto o dos outros alunos, um nivelamento ajudaria bastante.',
+        isTeacher: false,
+      },
+      {
+        id: '3',
+        sessionId: '2026-10-27',
+        email: 'c@gmail.com',
+        country: 'BR',
+        speaking: 'a_lot',
+        level: 'just_right',
+        rating: 5,
+        topicSuggestion: 'Sobre comidas e cultura latino-americana',
+        comment: 'Seria muito bom se as aulas fossem 30 minutos maiores para dar tempo das dinâmicas.',
+        isTeacher: false,
+      },
+    ]);
+
+    expect(radar.withTopicCount).toBe(3);
+    expect(radar.actionableImprovementCount).toBe(2);
+    expect(radar.praiseOnlyCount).toBe(1);
+    expect(radar.topicClusters.find((t) => t.id === 'tech_career')?.count).toBe(1);
+    expect(radar.topicClusters.find((t) => t.id === 'culture_food_travel')?.count).toBe(1);
+    expect(radar.topicClusters.find((t) => t.id === 'hobbies_icebreaker')?.count).toBe(1);
+    expect(radar.improvementCategories.find((i) => i.id === 'leveling_beginners')?.count).toBe(1);
+    expect(radar.improvementCategories.find((i) => i.id === 'duration_time')?.count).toBe(1);
+  });
+});

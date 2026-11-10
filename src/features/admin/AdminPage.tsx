@@ -35,6 +35,13 @@ import {
 import { zonedDateKey, zonedTimeKey, zonedWallTimeToUtc } from '../../../shared/time';
 import { isOpenAt } from '../../../shared/window';
 import { getClientFirebase } from './firebase-client';
+import {
+  IMPROVEMENT_CATEGORIES,
+  TOPIC_CLUSTERS,
+  buildFeedbackRadar,
+  type ImprovementCategoryId,
+  type TopicClusterId,
+} from './feedback-radar';
 import { generateTueThuCandidates, suggestRandomKeyword } from './keywords';
 import { LiveView } from './LiveView';
 
@@ -94,6 +101,10 @@ export default function AdminPage() {
   const [studentsCount, setStudentsCount] = useState({ total: 0, returning: 0 });
   const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
   const [metricsSessionId, setMetricsSessionId] = useState<string | null>(null);
+  const [radarScope, setRadarScope] = useState<'all' | 'session'>('all');
+  const [feedMode, setFeedMode] = useState<'all' | 'demands' | 'topics' | 'improvements' | 'praise'>('all');
+  const [activeTopicCluster, setActiveTopicCluster] = useState<TopicClusterId | null>(null);
+  const [activeImprovementCat, setActiveImprovementCat] = useState<ImprovementCategoryId | null>(null);
   const [loadingData, setLoadingData] = useState(false);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
 
@@ -485,6 +496,71 @@ export default function AdminPage() {
       trend,
     };
   }, [sessions]);
+
+  const effectiveMetricsSessionId =
+    metricsSessionId ?? sessions.find((s) => s.stats.total > 0)?.id ?? sessions[0]?.id ?? null;
+
+  const radar = useMemo(() => {
+    const inputs = checkins.map((c) => ({
+      id: c.id,
+      sessionId: c.doc.sessionId,
+      email: c.doc.email,
+      country: c.doc.country,
+      speaking: c.doc.speaking,
+      level: c.doc.level,
+      rating: c.doc.rating,
+      comment: c.doc.comment,
+      topicSuggestion: c.doc.topicSuggestion,
+      isTeacher: c.doc.isTeacher,
+    }));
+    const scopeFilter =
+      radarScope === 'session' && effectiveMetricsSessionId ? effectiveMetricsSessionId : 'all';
+    return buildFeedbackRadar(inputs, scopeFilter);
+  }, [checkins, radarScope, effectiveMetricsSessionId]);
+
+  const enrichedByCheckinId = useMemo(() => {
+    const map = new Map<string, (typeof radar.items)[number]>();
+    for (const item of radar.items) {
+      map.set(item.checkin.id, item);
+    }
+    return map;
+  }, [radar]);
+
+  const filteredCheckins = useMemo(() => {
+    return checkins.filter((c) => {
+      if (radarScope === 'session' && effectiveMetricsSessionId && c.doc.sessionId !== effectiveMetricsSessionId) {
+        return false;
+      }
+      const info = enrichedByCheckinId.get(c.id);
+      if (activeTopicCluster) {
+        return Boolean(info?.topicClusters.includes(activeTopicCluster));
+      }
+      if (activeImprovementCat) {
+        return Boolean(info?.improvementCategories.includes(activeImprovementCat));
+      }
+      if (feedMode === 'demands') {
+        return Boolean(info?.isActionable);
+      }
+      if (feedMode === 'topics') {
+        return Boolean(c.doc.topicSuggestion && c.doc.topicSuggestion.trim());
+      }
+      if (feedMode === 'improvements') {
+        return Boolean(info && info.improvementCategories.length > 0);
+      }
+      if (feedMode === 'praise') {
+        return Boolean(info?.isPraiseOnly);
+      }
+      return true;
+    });
+  }, [
+    checkins,
+    radarScope,
+    effectiveMetricsSessionId,
+    enrichedByCheckinId,
+    activeTopicCluster,
+    activeImprovementCat,
+    feedMode,
+  ]);
 
   if (!authReady) {
     return (
@@ -1214,42 +1290,336 @@ export default function AdminPage() {
             </div>
           </div>
 
-          {/* Topic suggestions & comments feed + delete check-in */}
-          <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5">
-            <h2 className="mb-3 text-sm font-bold text-[var(--text)]">
-              Recent Check-ins, Topic Suggestions & Comments
-            </h2>
-            <ul className="max-h-96 space-y-2 overflow-y-auto text-xs">
-              {checkins.map((c) => (
-                <li
-                  key={c.id}
-                  className="flex flex-col items-start gap-2.5 rounded-xl border border-[var(--border)] bg-[var(--bg)] p-3.5"
+          {/* Student Demand & Improvement Radar */}
+          <div className="space-y-5 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 sm:p-6">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <h2 className="text-base font-bold text-[var(--text)]">
+                  🎯 Student Demand & Improvement Radar
+                </h2>
+                <p className="text-xs text-[var(--text-secondary)]">
+                  At-a-glance ranking of requested topics and actionable class improvements (click any bar to filter)
+                </p>
+              </div>
+
+              <div className="flex items-center gap-1.5 rounded-xl border border-[var(--border)] bg-[var(--bg)] p-1">
+                <button
+                  type="button"
+                  onClick={() => setRadarScope('all')}
+                  className={`min-h-9 rounded-lg px-3 text-xs font-bold transition ${
+                    radarScope === 'all'
+                      ? 'bg-[var(--primary)] text-white'
+                      : 'text-[var(--text-secondary)] hover:text-[var(--text)]'
+                  }`}
                 >
-                  <div className="w-full space-y-1">
-                    <p className="font-semibold text-[var(--text)]">
-                      {flagEmoji(c.doc.country)} {c.doc.email} ·{' '}
-                      <span className="text-[var(--text-secondary)]">{c.doc.sessionId}</span> · ⭐{' '}
-                      {c.doc.rating}
-                      {c.doc.isTeacher && (
-                        <span className="ml-2 rounded bg-[var(--primary)]/20 px-1.5 py-0.5 text-[10px] text-[var(--primary)]">
-                          TEACHER
-                        </span>
-                      )}
-                    </p>
-                    {c.doc.topicSuggestion && (
-                      <p className="text-[var(--accent)]">💡 Topic: {c.doc.topicSuggestion}</p>
-                    )}
-                    {c.doc.comment && <p className="text-[var(--text-secondary)]">💬 {c.doc.comment}</p>}
-                  </div>
+                  All Sessions ({aggregate.totalCheckins})
+                </button>
+                {metricsSession && (
                   <button
                     type="button"
-                    onClick={() => void handleDeleteCheckin(c.id)}
-                    className="rounded-lg border border-red-400/40 px-2.5 py-1 text-[11px] font-semibold text-red-300 hover:bg-red-500/20"
+                    onClick={() => setRadarScope('session')}
+                    className={`min-h-9 rounded-lg px-3 text-xs font-bold transition ${
+                      radarScope === 'session'
+                        ? 'bg-[var(--primary)] text-white'
+                        : 'text-[var(--text-secondary)] hover:text-[var(--text)]'
+                    }`}
                   >
-                    Delete
+                    Only {metricsSession.id} ({metricsSession.stats.total})
                   </button>
-                </li>
-              ))}
+                )}
+              </div>
+            </div>
+
+            {/* Summary KPI row for feedback */}
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+              <div className="rounded-xl border border-[var(--border)] bg-[var(--bg)] p-3.5">
+                <p className="text-xs text-[var(--text-secondary)]">💡 Topic Requests</p>
+                <p className="mt-1 text-xl font-extrabold text-[var(--text)]">
+                  {radar.withTopicCount}
+                  <span className="ml-1.5 text-xs font-normal text-[var(--text-secondary)]">
+                    ({radar.totalStudentCheckins > 0 ? Math.round((radar.withTopicCount / radar.totalStudentCheckins) * 100) : 0}%)
+                  </span>
+                </p>
+              </div>
+              <div className="rounded-xl border border-[var(--border)] bg-[var(--bg)] p-3.5">
+                <p className="text-xs text-[var(--text-secondary)]">🛠️ Improvement / Action Items</p>
+                <p className="mt-1 text-xl font-extrabold text-amber-400">
+                  {radar.actionableImprovementCount}
+                  <span className="ml-1.5 text-xs font-normal text-[var(--text-secondary)]">
+                    to review
+                  </span>
+                </p>
+              </div>
+              <div className="rounded-xl border border-[var(--border)] bg-[var(--bg)] p-3.5">
+                <p className="text-xs text-[var(--text-secondary)]">❤️ Pure Praise Comments</p>
+                <p className="mt-1 text-xl font-extrabold text-[var(--primary)]">
+                  {radar.praiseOnlyCount}
+                </p>
+              </div>
+              <div className="rounded-xl border border-[var(--border)] bg-[var(--bg)] p-3.5">
+                <p className="text-xs text-[var(--text-secondary)]">💬 Total Written Feedback</p>
+                <p className="mt-1 text-xl font-extrabold text-[var(--text)]">
+                  {radar.items.length}
+                </p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+              {/* Left: Content & Topic Demand */}
+              <div className="space-y-3 rounded-xl border border-[var(--border)] bg-[var(--bg)] p-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-[var(--text)]">
+                    💡 Most Requested Topics (What They Want to Talk About)
+                  </h3>
+                  {activeTopicCluster && (
+                    <button
+                      type="button"
+                      onClick={() => setActiveTopicCluster(null)}
+                      className="text-xs font-bold text-[var(--primary)] hover:underline"
+                    >
+                      Clear filter ×
+                    </button>
+                  )}
+                </div>
+
+                <div className="space-y-2.5">
+                  {radar.topicClusters.map((tc) => {
+                    const selected = activeTopicCluster === tc.id;
+                    return (
+                      <button
+                        key={tc.id}
+                        type="button"
+                        onClick={() => {
+                          setActiveImprovementCat(null);
+                          setActiveTopicCluster((prev) => (prev === tc.id ? null : tc.id));
+                        }}
+                        className={`w-full rounded-xl border p-3 text-left transition ${
+                          selected
+                            ? 'border-[var(--primary)] bg-[var(--primary)]/15 ring-2 ring-[var(--primary)]'
+                            : 'border-[var(--border)] bg-[var(--surface)] hover:border-[var(--primary)]/60'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between gap-2 text-xs">
+                          <span className="font-bold text-[var(--text)]">
+                            {tc.icon} {tc.title}
+                          </span>
+                          <span className="shrink-0 rounded-md bg-[var(--bg)] px-2 py-0.5 font-mono font-bold text-[var(--text)]">
+                            {tc.count} ({tc.pct}%)
+                          </span>
+                        </div>
+                        <p className="mt-0.5 text-[11px] text-[var(--text-secondary)]">{tc.subtitle}</p>
+                        <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-[var(--bg)]">
+                          <div
+                            className="h-full rounded-full bg-[var(--primary)] transition-all"
+                            style={{ width: `${Math.min(100, tc.pct)}%` }}
+                          />
+                        </div>
+                        {tc.samples.length > 0 && (
+                          <p className="mt-2 line-clamp-2 text-[11px] italic text-[var(--text-secondary)]">
+                            &ldquo;{tc.samples[0]}&rdquo;
+                          </p>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {radar.topKeywords.length > 0 && (
+                  <div className="border-t border-[var(--border)] pt-3">
+                    <p className="mb-2 text-[11px] font-semibold text-[var(--text-secondary)]">
+                      Top words cited in topic requests:
+                    </p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {radar.topKeywords.map((kw) => (
+                        <span
+                          key={kw.word}
+                          className="rounded-lg border border-[var(--border)] bg-[var(--surface)] px-2 py-0.5 text-[11px] font-medium text-[var(--text)]"
+                        >
+                          {kw.word} <strong className="text-[var(--primary)]">×{kw.count}</strong>
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Right: Actionable Class Improvements */}
+              <div className="space-y-3 rounded-xl border border-[var(--border)] bg-[var(--bg)] p-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-[var(--text)]">
+                    🛠️ Improvement & Pain-Point Radar (What to Adjust)
+                  </h3>
+                  {activeImprovementCat && (
+                    <button
+                      type="button"
+                      onClick={() => setActiveImprovementCat(null)}
+                      className="text-xs font-bold text-[var(--primary)] hover:underline"
+                    >
+                      Clear filter ×
+                    </button>
+                  )}
+                </div>
+
+                <div className="space-y-2.5">
+                  {radar.improvementCategories.map((ic) => {
+                    const selected = activeImprovementCat === ic.id;
+                    return (
+                      <button
+                        key={ic.id}
+                        type="button"
+                        onClick={() => {
+                          setActiveTopicCluster(null);
+                          setActiveImprovementCat((prev) => (prev === ic.id ? null : ic.id));
+                        }}
+                        className={`w-full rounded-xl border p-3 text-left transition ${
+                          selected
+                            ? 'border-[var(--primary)] bg-[var(--primary)]/15 ring-2 ring-[var(--primary)]'
+                            : 'border-[var(--border)] bg-[var(--surface)] hover:border-[var(--primary)]/60'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between gap-2 text-xs">
+                          <span className="font-bold text-[var(--text)]">
+                            {ic.icon} {ic.title}
+                          </span>
+                          <span className="shrink-0 rounded-md bg-[var(--bg)] px-2 py-0.5 font-mono font-bold text-[var(--text)]">
+                            {ic.count} ({ic.pct}%)
+                          </span>
+                        </div>
+                        <p className="mt-0.5 text-[11px] text-[var(--text-secondary)]">{ic.subtitle}</p>
+                        <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-[var(--bg)]">
+                          <div
+                            className="h-full rounded-full bg-amber-400 transition-all"
+                            style={{ width: `${Math.min(100, ic.pct)}%` }}
+                          />
+                        </div>
+                        {ic.samples.length > 0 && (
+                          <p className="mt-2 line-clamp-2 text-[11px] italic text-[var(--text-secondary)]">
+                            &ldquo;{ic.samples[0]}&rdquo;
+                          </p>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Topic suggestions & comments feed + delete check-in */}
+          <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5">
+            <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <h2 className="text-sm font-bold text-[var(--text)]">
+                  Recent Check-ins, Topic Suggestions & Comments ({filteredCheckins.length})
+                </h2>
+                {(activeTopicCluster || activeImprovementCat) && (
+                  <p className="mt-0.5 text-xs text-[var(--primary)]">
+                    Filtered by radar selection ·{' '}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setActiveTopicCluster(null);
+                        setActiveImprovementCat(null);
+                      }}
+                      className="font-bold underline"
+                    >
+                      Reset
+                    </button>
+                  </p>
+                )}
+              </div>
+
+              <div className="flex flex-wrap gap-1.5">
+                {([
+                  ['all', '📋 All'],
+                  ['demands', '🔥 Only Demands & Improvements'],
+                  ['topics', '💡 Topic Requests'],
+                  ['improvements', '🛠️ Improvements'],
+                  ['praise', '❤️ Pure Praise'],
+                ] as const).map(([mode, label]) => (
+                  <button
+                    key={mode}
+                    type="button"
+                    onClick={() => {
+                      setActiveTopicCluster(null);
+                      setActiveImprovementCat(null);
+                      setFeedMode(mode);
+                    }}
+                    className={`min-h-9 rounded-xl px-3 text-xs font-bold transition ${
+                      feedMode === mode && !activeTopicCluster && !activeImprovementCat
+                        ? 'bg-[var(--primary)] text-white'
+                        : 'border border-[var(--border)] bg-[var(--bg)] text-[var(--text-secondary)] hover:text-[var(--text)]'
+                    }`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <ul className="max-h-96 space-y-2 overflow-y-auto text-xs">
+              {filteredCheckins.map((c) => {
+                const info = enrichedByCheckinId.get(c.id);
+                return (
+                  <li
+                    key={c.id}
+                    className="flex flex-col items-start gap-2.5 rounded-xl border border-[var(--border)] bg-[var(--bg)] p-3.5"
+                  >
+                    <div className="w-full space-y-1.5">
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <p className="font-semibold text-[var(--text)]">
+                          {flagEmoji(c.doc.country)} {c.doc.email} ·{' '}
+                          <span className="text-[var(--text-secondary)]">{c.doc.sessionId}</span> · ⭐{' '}
+                          {c.doc.rating}
+                        </p>
+                        {c.doc.isTeacher && (
+                          <span className="rounded bg-[var(--primary)]/20 px-1.5 py-0.5 text-[10px] font-bold text-[var(--primary)]">
+                            TEACHER
+                          </span>
+                        )}
+                        {info?.topicClusters.map((tid) => {
+                          const meta = TOPIC_CLUSTERS.find((t) => t.id === tid);
+                          return meta ? (
+                            <span
+                              key={tid}
+                              className="rounded-md border border-[var(--primary)]/40 bg-[var(--primary)]/15 px-2 py-0.5 text-[10px] font-bold text-[var(--text)]"
+                            >
+                              {meta.icon} {meta.title}
+                            </span>
+                          ) : null;
+                        })}
+                        {info?.improvementCategories.map((iid) => {
+                          const meta = IMPROVEMENT_CATEGORIES.find((i) => i.id === iid);
+                          return meta ? (
+                            <span
+                              key={iid}
+                              className="rounded-md border border-amber-400/50 bg-amber-500/15 px-2 py-0.5 text-[10px] font-bold text-amber-300"
+                            >
+                              {meta.icon} {meta.title}
+                            </span>
+                          ) : null;
+                        })}
+                        {info?.isPraiseOnly && (
+                          <span className="rounded-md border border-[var(--border)] bg-[var(--surface)] px-2 py-0.5 text-[10px] font-medium text-[var(--text-secondary)]">
+                            ❤️ Praise
+                          </span>
+                        )}
+                      </div>
+                      {c.doc.topicSuggestion && (
+                        <p className="text-[var(--accent)]">💡 Topic: {c.doc.topicSuggestion}</p>
+                      )}
+                      {c.doc.comment && <p className="text-[var(--text-secondary)]">💬 {c.doc.comment}</p>}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => void handleDeleteCheckin(c.id)}
+                      className="rounded-lg border border-red-400/40 px-2.5 py-1 text-[11px] font-semibold text-red-300 hover:bg-red-500/20"
+                    >
+                      Delete
+                    </button>
+                  </li>
+                );
+              })}
             </ul>
           </div>
         </div>

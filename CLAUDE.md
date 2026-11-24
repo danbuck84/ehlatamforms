@@ -7,7 +7,7 @@ for Teacher Dan's English Hub live classes (Tue & Thu, 18:00–19:00 BRT). Stude
 with email + a secret keyword announced at the end of class, rate the class, comment and suggest topics. Teacher admin
 at /admin: sessions, keywords, QR share screen, live projector view, metrics, CSV export. Attendance streak is implemented.
 Not implemented yet: topic voting (Dan plans to design it in a separate chat; confirm before building).
-Production: https://ehlatamforms.netlify.app/. Google Forms keeps running in parallel until this app is ready.
+Production: https://ehlatamforms.netlify.app/. It is the live system now; Google Forms is no longer used.
 Planned: migration to the Rocketseat platform later. Keep code portable and data export-friendly.
 
 ## Owner
@@ -68,7 +68,7 @@ as late for up to 48h. Teacher email is excluded from stats.
 - Any env var or secret, HASH_PEPPER, service-account handling
 - Check-in window defaults, keyword logic, email dedup, data model fields
 - Anything that deletes or exports student data, or edits production data
-- Do not break the Google Forms parallel run
+- Anything that could break the live check-in on class days (Tue/Thu, window 12:00 to 00:00 BRT); this app is the only attendance system
 
 ## Privacy
 
@@ -80,5 +80,5 @@ docs or tests. Never show secrets or .env contents.
 - Docs outdated on SW update mode (code uses autoUpdate; PLAN.md and ADR 0001 say prompt)
 - No data retention / deletion policy (LGPD) yet; idea: strip emails from checkins after ~12 months, keep aggregates
 - App Check still soft; Background Sync sends no App Check token
-- Recent features (streak, radar, admin metrics) lack tests; no local .env (emulators cover dev)
+- Recent features (streak, radar, admin metrics) lack tests; local .env exists (git-ignored, emulator-only demo values)
 - Topic voting not built; Rocketseat migration plan not defined

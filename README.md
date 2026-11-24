@@ -33,7 +33,7 @@ Mobile-first · Trilingual (EN / PT-BR / ES) · Works offline · Installable lik
 
 Twice a week, **Teacher Dan** hosts a live, online **English conversation class** for the Rocketseat and Digital House community across Latin America. No slides to memorize, no pressure: you show up, you talk, you get more comfortable speaking English with people who are learning just like you.
 
-**EnglishTalk** is the little app that makes those classes run smoothly. It started life as a Google Form, and it grew into something much nicer:
+**EnglishTalk** is the little app that makes those classes run smoothly. It replaced the old Google Form and grew into something much nicer:
 
 - ✅ **Check in with 3 quick steps** from your phone: tell us who you are, how class went, and the secret word.
 - 🔥 **Build a streak.** Come to class again and again and watch your attendance flame grow.
@@ -78,6 +78,33 @@ A private admin area lets the teacher:
 - see **metrics**: attendance, ratings, level feedback, trends, plus a radar of the topics and improvements students ask for;
 - **export a CSV** and fix individual check-ins when needed.
 
+## A quick look 👀
+
+<p align="center">
+  <img src="docs/images/checkin-closed.png" alt="Student view: check-in closed, with a countdown to opening and the next class" width="720" />
+  <br/><sub><b>Student view.</b> Outside the window the app shows a countdown and the next class. Switch between EN, PT and ES at the top.</sub>
+</p>
+
+<p align="center">
+  <img src="docs/images/admin-sessions.png" alt="Admin panel: create a session and generate Tuesday and Thursday sessions" width="720" />
+  <br/><sub><b>Sessions.</b> Create a class, set the topic and secret keyword, or generate the next weeks in one click.</sub>
+</p>
+
+<p align="center">
+  <img src="docs/images/admin-share.png" alt="Admin panel: permanent QR code to show during class" width="560" />
+  <br/><sub><b>Share.</b> One permanent QR code and link, ready to show during class.</sub>
+</p>
+
+<p align="center">
+  <img src="docs/images/admin-live.png" alt="Admin panel: live projector view with the number of students checked in" width="720" />
+  <br/><sub><b>Live.</b> Watch check-ins arrive in real time.</sub>
+</p>
+
+<p align="center">
+  <img src="docs/images/admin-metrics.png" alt="Admin panel: metrics with sessions, check-ins, unique students, returning students and ratings" width="720" />
+  <br/><sub><b>Metrics.</b> Attendance, returning students, ratings, speaking time, level feedback, countries and trends.</sub>
+</p>
+
 ---
 
 # Part 2 · The technical part 🛠️
@@ -103,7 +130,7 @@ A private admin area lets the teacher:
 
 EnglishTalk is a single-page **Progressive Web App** backed by a few **serverless functions** and a **Firestore** database. Students never talk to the database directly: everything goes through a small API, which is what lets us enforce the check-in window, the secret keyword and the rate limits on the server, where they cannot be tampered with.
 
-Production: **https://ehlatamforms.netlify.app/**. The original Google Form keeps running in parallel until the app is declared ready.
+Production: **https://ehlatamforms.netlify.app/**. It replaced the Google Forms attendance check-in.
 
 ## Features
 

@@ -155,9 +155,7 @@ test.describe('EnglishTalk E2E — Student flow, i18n, a11y, offline & admin gat
 
     // Switch to PT
     await page.getByRole('button', { name: 'pt', exact: true }).click();
-    await expect(
-      page.getByRole('heading', { name: 'O check-in está fechado no momento' }),
-    ).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'O check-in está fechado no momento' })).toBeVisible();
 
     // Privacy page
     await page.getByRole('link', { name: 'Privacidade' }).click();

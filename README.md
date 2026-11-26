@@ -223,6 +223,18 @@ pnpm dev
 
 The emulators use a demo project, so local development never touches production data.
 
+For `pnpm dev`, create a local `.env` (git-ignored) so the Netlify Functions use the emulators:
+
+```bash
+VITE_USE_FIREBASE_EMULATOR=true
+FIRESTORE_EMULATOR_HOST=127.0.0.1:8080
+FIREBASE_AUTH_EMULATOR_HOST=127.0.0.1:9099
+FIREBASE_PROJECT_ID=demo-englishtalk
+APP_CHECK_ENFORCEMENT=off
+```
+
+The dev server skips the production Content-Security-Policy (it blocks React Fast Refresh); production still enforces it via `netlify.toml`.
+
 ## Scripts
 
 | Command                        | Purpose                                                                  |

@@ -1,4 +1,4 @@
-import { defineConfig } from 'vite';
+import { defineConfig, loadEnv, type Plugin } from 'vite';
 import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
 import netlify from '@netlify/vite-plugin';
@@ -7,6 +7,33 @@ import { APP_CONFIG } from './src/config/app.ts';
 import pkg from './package.json' with { type: 'json' };
 
 const isTest = process.env.VITEST === 'true';
+
+/**
+ * Dev server only (`pnpm dev`); builds, `pnpm preview`, the E2E tests and production are unaffected
+ * (production headers come from netlify.toml on Netlify).
+ * 1. Load the local .env (e.g. FIRESTORE_EMULATOR_HOST) into process.env so the Netlify Functions
+ *    emulated by the Netlify plugin talk to the Firebase emulators. Must run before that plugin starts.
+ * 2. Drop the production Content-Security-Policy that the Netlify plugin copies from netlify.toml:
+ *    it blocks the inline script React Fast Refresh injects, which left the dev page blank.
+ */
+const localDevServer: Plugin = {
+  name: 'englishtalk:local-dev-server',
+  apply: 'serve',
+  configureServer(server) {
+    const fileEnv = loadEnv(server.config.mode, server.config.envDir || server.config.root, '');
+    for (const [key, value] of Object.entries(fileEnv)) {
+      process.env[key] ??= value;
+    }
+    server.middlewares.use((_req, res, next) => {
+      const setHeader = res.setHeader.bind(res);
+      res.setHeader = ((name: string, value: number | string | readonly string[]) =>
+        name.toLowerCase() === 'content-security-policy'
+          ? res
+          : setHeader(name, value)) as typeof res.setHeader;
+      next();
+    });
+  },
+};
 
 export default defineConfig({
   define: {
@@ -31,7 +58,10 @@ export default defineConfig({
               name: 'charts',
               test: /node_modules[\\/](\.pnpm[\\/][^\\/]+[\\/]node_modules[\\/])?(recharts|d3-|victory-vendor|@reduxjs|immer|reselect|redux|es-toolkit|decimal\.js)/,
             },
-            { name: 'qr', test: /node_modules[\\/](\.pnpm[\\/][^\\/]+[\\/]node_modules[\\/])?(qrcode|pngjs|dijkstrajs)/ },
+            {
+              name: 'qr',
+              test: /node_modules[\\/](\.pnpm[\\/][^\\/]+[\\/]node_modules[\\/])?(qrcode|pngjs|dijkstrajs)/,
+            },
           ],
         },
       },
@@ -40,8 +70,10 @@ export default defineConfig({
   plugins: [
     react(),
     tailwindcss(),
+    localDevServer,
     // Emulates Netlify Functions, redirects and headers inside `pnpm dev`.
-    !isTest && netlify(),
+    // Edge Functions are not used by this project; their local Deno server crashed `pnpm dev`.
+    !isTest && netlify({ edgeFunctions: { enabled: false } }),
     VitePWA({
       strategies: 'injectManifest',
       srcDir: 'src',

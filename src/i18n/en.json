@@ -15,7 +15,9 @@
     "queuedFlushedToast": "Your offline check-in was sent! 💜",
     "swUpdateTitle": "New version available",
     "swUpdateAction": "Refresh",
-    "dismiss": "Dismiss"
+    "dismiss": "Dismiss",
+    "materialsLink": "Class materials",
+    "opensNewTab": "(opens in a new tab)"
   },
   "header": {
     "classChip": "{{moment}} ({{tz}})",
@@ -130,7 +132,10 @@
     "streakOne": "1-class streak started!",
     "streakMany": "{{count}} classes in a row!",
     "streakSubtitle": "{{total}} total classes · Best streak: {{best}}",
-    "streakKeepGoing": "Come back next class to keep your flame burning!"
+    "streakKeepGoing": "Come back next class to keep your flame burning!",
+    "materialsTitle": "Class materials",
+    "materialsBody": "All the materials from our classes, in one Google Drive folder.",
+    "materialsButton": "Open materials"
   },
   "privacy": {
     "title": "Privacy Notice",

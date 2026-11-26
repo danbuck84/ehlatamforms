@@ -13,6 +13,9 @@ export const APP_CONFIG = {
   CO_BRAND: 'English Hub Rocketseat | LATAM English Conversation 🌎',
   TEACHER_NAME: 'Teacher Dan',
 
+  /** Public Google Drive folder with the class materials (shown after check-in and in the footer). */
+  MATERIALS_URL: 'https://drive.google.com/drive/folders/1Ezmw2n26HyMP-MCE_396w2skgiPo0MJw?usp=sharing',
+
   /** All class times are defined in this IANA timezone. */
   TIMEZONE: 'America/Sao_Paulo',
   /** Human label for TIMEZONE used in the UI. */

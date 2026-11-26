@@ -15,7 +15,9 @@
     "queuedFlushedToast": "Seu check-in offline foi enviado! 💜",
     "swUpdateTitle": "Nova versão disponível",
     "swUpdateAction": "Atualizar",
-    "dismiss": "Fechar"
+    "dismiss": "Fechar",
+    "materialsLink": "Materiais das aulas",
+    "opensNewTab": "(abre em uma nova aba)"
   },
   "header": {
     "classChip": "{{moment}} ({{tz}})",
@@ -130,7 +132,10 @@
     "streakOne": "1 aula de ofensiva iniciada!",
     "streakMany": "{{count}} aulas seguidas de ofensiva!",
     "streakSubtitle": "{{total}} presenças no total · Recorde: {{best}}",
-    "streakKeepGoing": "Volte na próxima aula para manter o foguinho aceso!"
+    "streakKeepGoing": "Volte na próxima aula para manter o foguinho aceso!",
+    "materialsTitle": "Materiais das aulas",
+    "materialsBody": "Todo o material das nossas aulas, em uma pasta do Google Drive.",
+    "materialsButton": "Abrir materiais"
   },
   "privacy": {
     "title": "Aviso de Privacidade",

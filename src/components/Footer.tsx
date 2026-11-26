@@ -1,5 +1,6 @@
 import { Link } from 'react-router';
 import { useTranslation } from 'react-i18next';
+import { APP_CONFIG } from '../config/app';
 
 export function Footer() {
   const { t } = useTranslation();
@@ -13,6 +14,16 @@ export function Footer() {
         >
           {t('app.privacyLink')}
         </Link>
+        <span aria-hidden="true">·</span>
+        <a
+          href={APP_CONFIG.MATERIALS_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex min-h-11 items-center px-1 font-medium text-[var(--text)] underline underline-offset-4 hover:text-[var(--primary)]"
+        >
+          📚 {t('app.materialsLink')}
+          <span className="sr-only"> {t('app.opensNewTab')}</span>
+        </a>
       </div>
     </footer>
   );

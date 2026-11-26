@@ -118,6 +118,10 @@ test.describe('EnglishTalk E2E — Student flow, i18n, a11y, offline & admin gat
       }),
     ).toBeVisible();
     await expect(page.getByText(/3 classes in a row!/i)).toBeVisible();
+    await expect(page.getByRole('link', { name: /Open materials/i })).toHaveAttribute(
+      'href',
+      /^https:\/\/drive\.google\.com\//,
+    );
 
     const axeSuccess = await new AxeBuilder({ page }).analyze();
     expect(axeSuccess.violations).toEqual([]);

@@ -15,7 +15,9 @@
     "queuedFlushedToast": "Tu check-in sin conexión fue enviado! 💜",
     "swUpdateTitle": "Nueva versión disponible",
     "swUpdateAction": "Actualizar",
-    "dismiss": "Cerrar"
+    "dismiss": "Cerrar",
+    "materialsLink": "Materiales de las clases",
+    "opensNewTab": "(se abre en una pestaña nueva)"
   },
   "header": {
     "classChip": "{{moment}} ({{tz}})",
@@ -130,7 +132,10 @@
     "streakOne": "Racha de 1 clase iniciada!",
     "streakMany": "{{count}} clases seguidas en racha!",
     "streakSubtitle": "{{total}} clases en total · Récord: {{best}}",
-    "streakKeepGoing": "Vuelve en la próxima clase para mantener encendida tu racha!"
+    "streakKeepGoing": "Vuelve en la próxima clase para mantener encendida tu racha!",
+    "materialsTitle": "Materiales de las clases",
+    "materialsBody": "Todo el material de nuestras clases, en una carpeta de Google Drive.",
+    "materialsButton": "Abrir materiales"
   },
   "privacy": {
     "title": "Aviso de Privacidad",

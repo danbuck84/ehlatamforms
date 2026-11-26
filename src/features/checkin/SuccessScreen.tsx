@@ -35,7 +35,10 @@ export function SuccessScreen({ variant, nextSession, streak }: SuccessScreenPro
       aria-live="polite"
       className="relative mx-auto max-w-2xl overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6 text-center shadow-xl sm:p-10"
     >
-      <div aria-hidden="true" className="celebration-burst mx-auto mb-3 flex h-16 w-16 items-center justify-center rounded-full bg-[var(--accent)]/15 text-3xl">
+      <div
+        aria-hidden="true"
+        className="celebration-burst mx-auto mb-3 flex h-16 w-16 items-center justify-center rounded-full bg-[var(--accent)]/15 text-3xl"
+      >
         {variant === 'queued' ? '📡' : streak && streak.current >= 2 ? '🔥' : '🎉'}
       </div>
 
@@ -60,6 +63,23 @@ export function SuccessScreen({ variant, nextSession, streak }: SuccessScreenPro
           <p className="mt-1 text-xs text-[var(--text-secondary)]">{t('states.streakKeepGoing')}</p>
         </div>
       )}
+
+      <div className="mt-5 rounded-2xl border border-[var(--border)] bg-[var(--bg)] p-4">
+        <p className="text-sm font-semibold text-[var(--text)]">
+          <span aria-hidden="true">📚 </span>
+          {t('states.materialsTitle')}
+        </p>
+        <p className="mt-1 text-xs text-[var(--text-secondary)]">{t('states.materialsBody')}</p>
+        <a
+          href={APP_CONFIG.MATERIALS_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="mt-3 inline-flex min-h-11 items-center justify-center rounded-xl border border-[var(--primary)] px-5 py-2.5 text-sm font-semibold text-[var(--text)] hover:bg-[var(--primary)]/15"
+        >
+          {t('states.materialsButton')}
+          <span className="sr-only"> {t('app.opensNewTab')}</span>
+        </a>
+      </div>
 
       {nextSession && (
         <div className="mt-5">
@@ -97,9 +117,7 @@ export function SuccessScreen({ variant, nextSession, streak }: SuccessScreenPro
               aria-label={t('states.iosSheetTitle', { appName: APP_CONFIG.APP_NAME })}
               className="mt-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-3 text-left text-xs text-[var(--text)]"
             >
-              <p className="font-semibold">
-                {t('states.iosSheetTitle', { appName: APP_CONFIG.APP_NAME })}
-              </p>
+              <p className="font-semibold">{t('states.iosSheetTitle', { appName: APP_CONFIG.APP_NAME })}</p>
               <ol className="mt-1.5 space-y-1 text-[var(--text-secondary)]">
                 <li>{t('states.iosStep1')}</li>
                 <li>{t('states.iosStep2')}</li>
